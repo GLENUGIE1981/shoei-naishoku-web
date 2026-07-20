@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作業納品書（本人用）</title>
+<style>
+  :root{
+    --bg:#eef1f4; --paper:#fff; --line:#333; --thin:#9aa4ad; --ink:#1a2733;
+    --accent:#2b7de9; --ok:#1a9e5c; --warn:#c0392b; --hand:#123a8f;
+    --tat:#fff4e8; --tatH:#ffe3c2; --mis:#eaf1ff; --misH:#cfe0ff; --sum:#e9f8ef; --sumH:#c6ecd4;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Hiragino Kaku Gothic ProN","Meiryo",system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+  header.bar{background:var(--ink);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:30}
+  header.bar h1{font-size:16px;margin:0;font-weight:700}
+  header.bar .who{font-size:12px;opacity:.9}
+  .wrap{max-width:1250px;margin:0 auto;padding:16px}
+
+  /* ===== タブ ===== */
+  .tabs{display:flex;gap:8px;margin-bottom:14px}
+  .tabs button{font-size:15px;font-weight:700;padding:10px 22px;border-radius:8px 8px 0 0;border:1px solid var(--thin);border-bottom:0;cursor:pointer;background:#dde3e9;color:#5a6b7b}
+  .tabs button.on{background:var(--paper);color:var(--ink);border-color:var(--line)}
+
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+  .addbar{display:flex;justify-content:flex-end;margin:-8px 0 16px}
+  button.act{font-size:14px;font-weight:700;padding:9px 16px;border-radius:8px;border:0;cursor:pointer;color:#fff}
+  button.add{background:#5a6b7b} button.send{background:var(--accent)} button.act:hover{filter:brightness(1.08)}
+  button.act:disabled{opacity:.55;cursor:not-allowed}
+  .legend{display:flex;gap:14px;font-size:12px;color:#5a6b7b;align-items:center}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .sw{width:13px;height:13px;border-radius:3px;display:inline-block;border:1px solid var(--thin)}
+  .grand{font-size:14px;color:#48586a;margin-left:6px}
+  .grand b{color:var(--ink);font-size:17px}
+
+  /* ===== 紙（シート） ===== */
+  .sheet{background:var(--paper);border:2px solid var(--line);border-radius:4px;padding:14px 16px 12px;margin-bottom:22px;
+    box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  .sheet-hd{margin-bottom:8px}
+  .sheet-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-bottom:2px solid var(--line);padding-bottom:8px}
+  .sheet-top .title{font-size:19px;font-weight:800;letter-spacing:1px}
+  .sheet-top .sno{font-size:12px;color:#7a8a9a;margin-left:auto}
+  .hd-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .hd-line .lbl{font-size:12px;color:#48586a;font-weight:700}
+  .seikbox{margin-left:auto;display:flex;align-items:center;gap:6px;border:2px solid var(--line);border-radius:4px;padding:3px 8px;background:#f4f7f4}
+  .hd-line input{border:0;border-bottom:1.5px solid var(--thin);border-radius:0;padding:4px 6px;font-size:15px;color:var(--hand);background:transparent;font-weight:600}
+  .hd-line input:focus{outline:none;border-bottom:2px solid var(--accent)}
+  .hd-line input.h-seik{border-bottom:0;color:var(--ink);font-weight:700}
+  .req{background:var(--warn);color:#fff;font-size:10px;border-radius:3px;padding:1px 4px;margin-left:4px;font-weight:700;vertical-align:1px}
+  .del-sheet{margin-left:8px;background:none;border:1px solid var(--warn);color:var(--warn);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px}
+
+  /* ===== ブロック（1商品） ===== */
+  .blocks{margin-top:10px}
+  table.block{border-collapse:collapse;width:100%;table-layout:fixed;margin-bottom:-2px}
+  table.block th,table.block td{border:1px solid var(--line);padding:0;text-align:center;font-size:11px}
+  table.block th{font-weight:700;padding:3px 1px;line-height:1.15;height:24px}
+  table.block .binfo{background:#eef2f6;color:#3a4956}
+  table.block .tat{background:var(--tatH);color:#8a4b00}
+  table.block .mis{background:var(--misH);color:#123f80}
+  table.block .sumh{background:var(--sumH);color:#0d6b3a}
+  table.block td.d-tat{background:var(--tat)}
+  table.block td.d-mis{background:var(--mis)}
+  table.block td.d-sum{background:var(--sum);font-weight:800;color:#0d6b3a;font-size:15px;font-variant-numeric:tabular-nums}
+  table.block td.sp,table.block th.sp{background:#f7f9fb}
+  table.block input{border:0;width:100%;text-align:center;padding:6px 2px;font-size:14px;color:var(--hand);background:transparent;font-weight:600;height:34px}
+  table.block input:focus{outline:2px solid var(--accent);outline-offset:-2px}
+  table.block td.txt input{text-align:center}
+  table.block input.big{font-size:16px;height:100%}
+  table.block td.prod input{font-size:16px;font-weight:700}
+  .colw-info{width:78px} .colw-op{width:52px} .colw-sum{width:60px} .colw-maisu{width:56px}
+
+  .blockwrap{margin-bottom:-2px}
+  .mixbar{display:flex;align-items:center;gap:8px;background:#fff8e6;border:1px solid #e8c877;
+    border-top:0;color:#8a5b00;font-size:12px;padding:5px 10px;margin-bottom:8px}
+  .mixbar b{color:#a5342a}
+  .mixbar select{font-size:13px;padding:3px 6px;border:1px solid #cfa650;border-radius:5px;background:#fff;color:#8a4b00;font-weight:700}
+  .sheet-ft{display:flex;justify-content:flex-end;gap:18px;font-size:13px;color:#48586a;margin-top:8px;
+    border-top:2px solid var(--line);padding-top:6px}
+  .sheet-ft b{color:var(--ink);font-size:16px;font-variant-numeric:tabular-nums}
+
+  .warnbox{background:#fff6f5;border:1px solid #f1c9c4;color:#a5342a;border-radius:8px;padding:10px 12px;margin:8px 0;font-size:13px;display:none}
+  .statusbox{border-radius:8px;padding:10px 12px;margin:8px 0;font-size:13px;display:none;font-weight:700}
+  .statusbox.ok{display:block;background:#effaf3;border:1px solid #a8dcbc;color:#0d6b3a}
+  .statusbox.err{display:block;background:#fff6f5;border:1px solid #f1c9c4;color:#a5342a;white-space:pre-wrap}
+  .statusbox.busy{display:block;background:#eef4fd;border:1px solid #b8d2f2;color:#1d5cb0}
+  .foot{font-size:12px;color:#7a8a9a;line-height:1.7;margin-top:8px;background:var(--paper);border:1px solid var(--thin);border-radius:8px;padding:10px 12px}
+
+  /* ===== 送信済みシートのロック表示 ===== */
+  .sheet.locked{border-color:var(--ok);background:#fbfffc}
+  .sheet.locked input,.sheet.locked select{pointer-events:none;color:#5a6b7b}
+  .sheet.locked .mixbar{display:none!important}
+  .sentmark{background:var(--ok);color:#fff;font-size:12px;font-weight:700;border-radius:4px;padding:4px 10px;letter-spacing:.5px}
+  button.reprint{background:#fff;border:1.5px solid var(--ok);color:var(--ok);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;font-weight:700}
+  button.reprint:hover{background:#effaf3}
+
+  /* ===== QR読み取り ===== */
+  button.qr-btn{background:#fff;border:1.5px solid var(--accent);color:var(--accent);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:700}
+  button.qr-btn:hover{background:#eef4fd}
+  #qrModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;align-items:center;justify-content:center;padding:16px}
+  #qrModal.open{display:flex}
+  .qr-box{background:var(--paper);border-radius:12px;padding:16px;max-width:420px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.35)}
+  .qr-box h3{margin:0 0 8px;font-size:16px}
+  #qrReader{width:100%;min-height:240px;background:#111;border-radius:8px;overflow:hidden}
+  #qrReader video{width:100%!important;border-radius:8px}
+  .qr-msg{font-size:13px;color:#48586a;margin:10px 0;line-height:1.6;min-height:2.4em}
+  .qr-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .qr-actions .filelbl{display:inline-block;background:#5a6b7b;color:#fff;font-size:14px;font-weight:700;padding:9px 16px;border-radius:8px;cursor:pointer}
+  .qr-actions button.close{margin-left:auto;background:none;border:1px solid var(--thin);color:#48586a;border-radius:8px;padding:9px 16px;cursor:pointer;font-size:14px;font-weight:700}
+
+  /* ===== 履歴（自分の控え） ===== */
+  .card{background:var(--paper);border:1px solid var(--thin);border-radius:8px;padding:12px 14px;margin-bottom:14px}
+  .filters{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .filters label{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:#48586a;font-weight:700}
+  .filters input{border:1px solid var(--thin);border-radius:6px;padding:8px 9px;font-size:15px;color:var(--hand);font-weight:600}
+  .filters input:focus{outline:none;border-color:var(--accent)}
+  .listwrap{overflow-x:auto}
+  table.rjtable{border-collapse:collapse;width:100%}
+  table.rjtable th,table.rjtable td{border:1px solid var(--thin);padding:6px 8px;font-size:13px;text-align:left;white-space:nowrap}
+  table.rjtable th{background:#eef2f6;color:#3a4956}
+  table.rjtable td.r{text-align:right;font-variant-numeric:tabular-nums}
+  table.rjtable td.c{text-align:center}
+  table.rjtable tr.void-row td{background:#faf6f6;color:#9aa4ad}
+  .kbadge{display:inline-block;margin-top:3px;font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;white-space:nowrap}
+  .kbadge.void{background:#fbe3e3;color:#b3261e}
+  .kbadge.redo{background:#e3eefb;color:#1e5bb3}
+  .rjbtns{display:flex;gap:6px;white-space:nowrap}
+  .rjbtns button.reprint:disabled{opacity:.4;cursor:not-allowed}
+  button.redo{background:#c26a2b;color:#fff;border:none;border-radius:6px;padding:5px 9px;font-size:12px;font-weight:700;cursor:pointer}
+  button.redo:hover{background:#a9581f}
+  .corr-mark{display:inline-flex;align-items:center;gap:8px;background:#fff3e8;color:#a9581f;border:1px solid #e6b98c;border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;margin-left:8px}
+  .corr-mark .corr-cancel{background:none;border:1px solid #c26a2b;color:#a9581f;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:700;cursor:pointer}
+  .empty{color:#7a8a9a;padding:6px 2px}
+
+  /* ===== 控え（印刷用） ===== */
+  #printArea{display:none}
+  .kae{font-size:13px;color:#000;padding:8mm 4mm}
+  .kae h2{font-size:20px;text-align:center;letter-spacing:4px;margin:0 0 10px;border-bottom:3px double #000;padding-bottom:8px}
+  .kae .kae-no{font-size:15px;font-weight:700}
+  .kae .kae-meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px 16px;margin-bottom:8px}
+  .kae .kae-meta div{line-height:1.8}
+  .kae table{border-collapse:collapse;width:100%;margin:8px 0}
+  .kae th,.kae td{border:1px solid #000;padding:4px 6px;font-size:12px}
+  .kae th{background:#f0f0f0;font-weight:700;text-align:center}
+  .kae td.r{text-align:right;font-variant-numeric:tabular-nums}
+  .kae td.c{text-align:center}
+  .kae .kae-total{display:flex;justify-content:flex-end;gap:24px;font-size:15px;font-weight:700;border-top:2px solid #000;padding-top:6px}
+  .kae .kae-note{font-size:11px;color:#333;margin-top:10px;border-top:1px solid #999;padding-top:6px;line-height:1.7}
+  .kae .kae-void{border:2.5px solid #000;background:#eee;color:#000;font-weight:800;text-align:center;padding:6px;margin:0 0 10px;font-size:15px;letter-spacing:1px}
+  .kae .kae-redo{font-size:11px;font-weight:700;color:#000;margin-top:2px}
+  .kae.kae-isvoid .kae-no{text-decoration:line-through}
+  @media print{
+    body{background:#fff}
+    header.bar,.wrap{display:none!important}
+    #printArea{display:block}
+    .kae{page-break-after:always} /* 控え1件＝1ページ */
+    .kae:last-child{page-break-after:auto}
+  }
+</style>
+  <meta name="robots" content="noindex,nofollow">
+</head>
+<body>
+<header class="bar">
+  <h1>作業納品書（本人用）</h1>
+  <span class="who" id="whoLine"></span>
+  <button id="btnSimple" type="button" style="margin-left:auto;background:#33475a;color:#fff;border:1px solid #56697c;border-radius:8px;padding:8px 14px;font-size:14px;font-weight:700;cursor:pointer">かんたん表示（大きな文字）</button>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <button id="tabBtnInput" type="button" class="on">入力</button>
+    <button id="tabBtnHistory" type="button">履歴（控えの再印刷）</button>
+  </div>
+
+  <div class="statusbox" id="statusBox"></div>
+
+  <!-- ===== 入力タブ ===== -->
+  <div id="tabInput">
+    <div class="toolbar">
+      <button class="act send" id="btnSend" type="button">送信する</button>
+      <span class="grand">全シート合計 <b id="grandMaisu">0</b> 枚 / <b id="grandKingaku">0</b> 円</span>
+      <div class="legend" style="margin-left:auto">
+        <span><i class="sw" style="background:var(--tat)"></i>たたみ系</span>
+        <span><i class="sw" style="background:var(--mis)"></i>ミシン系</span>
+        <span><i class="sw" style="background:var(--sum)"></i>自動計算</span>
+      </div>
+    </div>
+
+    <div class="warnbox" id="warnBox"></div>
+    <div id="sheets"></div>
+    <div class="addbar">
+      <button class="act add" id="btnAddSheet" type="button">＋ シートを追加（新しい紙）</button>
+    </div>
+
+    <div class="foot">
+      使い方：紙の作業納品書と同じように、使った作業の単価だけマスに書き込みます。合計単価・小計は自動で計算されます。<br>
+      <b>〔📷 加工指示書のQRで自動入力〕</b>を押して加工指示書のQRコードを読み取ると、受注番号・得意先・案件名・納品先が自動で入ります（カメラが使えないときは「写真から読み取る」か、受注番号の手入力でも同じように自動で入ります）。<b>受注番号は必須</b>です。<br>
+      請求者はご本人（このページの名義）に固定されています。変更はできません。<br>
+      〔送信する〕を押すと会社に登録され、<b>控え（控え番号付き）が自動で印刷画面に出ます</b>。送信済みのシートは変更できません。<br>
+      印刷し忘れたときは、送信済みシートの〔控えを再印刷〕か、上の「履歴」タブからいつでも再印刷できます。<br>
+      まちがえて送信してしまったときは、そのままにして会社までご連絡ください（この画面では修正できません）。
+    </div>
+  </div>
+
+  <!-- ===== 履歴タブ ===== -->
+  <div id="tabHistory" style="display:none">
+    <div class="card">
+      <div class="filters">
+        <label>期間 <input type="date" id="fFrom"> ～ <input type="date" id="fTo"></label>
+        <label>受注番号 <input id="fJuchu" inputmode="numeric" style="width:110px"></label>
+        <label>控え番号 <input id="fKaeNo" placeholder="例 012-0034" style="width:130px"></label>
+        <button class="act send" id="btnSearch" type="button">検索</button>
+        <button class="act add" id="btnRecent" type="button">直近20件</button>
+      </div>
+    </div>
+
+    <div class="card listwrap" id="listBox"><div class="empty">読み込み中…</div></div>
+
+    <div class="foot">
+      ご自身の控えの確認・再印刷ができます。〔再印刷〕を押すと印刷画面が開きます（控え番号は元のまま、「※再発行」の注記が付きます）。<br>
+      このページのURLはご本人専用です。他の方に教えないでください。
+    </div>
+  </div>
+</div>
+
+<!-- ===== QR読み取りモーダル ===== -->
+<div id="qrModal">
+  <div class="qr-box">
+    <h3>加工指示書のQRコードを読み取り</h3>
+    <div id="qrReader"></div>
+    <div class="qr-msg" id="qrMsg">カメラの使用を確認する画面が出たら「許可」を押してください。<br>加工指示書のQRコードを枠内にかざしてください。</div>
+    <div class="qr-actions">
+      <label class="filelbl">写真から読み取る<input type="file" accept="image/*" capture="environment" id="qrFile" hidden></label>
+      <button class="close" id="qrClose" type="button">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div id="printArea"></div>
+
+<script src="gas-api.js"></script>
+<script>
+/* トークン検証が終わるまで実行しない。中身は GAS版から無変更。 */
+function __startApp__(){
+
+/* doGet がトークン検証後にサーバーで解決した本人情報を埋め込む（クライアントからコード指定はしない） */
+const BOOT = window.__BOOT__;
+
+
+/* 高齢者向けスマホ版（mobile.html）への切替ボタン。
+   GAS版ではサンドボックスiframe対策で target="_top" の絶対URL移動が必須だったが、
+   Pages ではトップレベルのページなので相対URLで足りる。navTop はその名残で、
+   害が無いため残してある（動作は素直な遷移と同じ）。 */
+(function(){
+  function navTop(url){
+    var a=document.createElement("a");
+    a.href=url; a.target="_top"; a.rel="noopener";
+    document.body.appendChild(a); a.click();
+  }
+  var b=document.getElementById("btnSimple");
+  if(b)b.onclick=function(){
+    navTop("mobile.html?t="+encodeURIComponent(BOOT.token));
+  };
+})();
+
+
+function escHtml(t){return String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function errText(err){return err&&err.message?err.message:String(err);}
+function setStatus(cls,msg){
+  const box=document.getElementById("statusBox");
+  box.className="statusbox"+(cls?" "+cls:"");
+  box.textContent=msg||"";
+}
+document.getElementById("whoLine").textContent=`${BOOT.name} さん（内職さんコード：${BOOT.code}）専用ページ`;
+
+/* ===== 作業列 → kintoneフィールドコード（スタッフ用と同一） ===== */
+const TATAMI_OPS=[["OPP入","tanka_opp_tatami"],["シール貼","tanka_seal_tatami"],["下札付","tanka_sagefuda_tatami"],["投込","tanka_nagekomi_tatami"],["十字梱包","tanka_juji_tatami"]];
+const MISIN_OPS=[["一辺","tanka_ippen_misin"],["二辺","tanka_nihen_misin"],["四方","tanka_shihou_misin"],["カット","tanka_cut_misin"],["サイズ付","tanka_sizetsuke_misin"],["洗濯","tanka_sentaku_misin"],["ピス","tanka_pis_misin"],["アイロン","tanka_iron_misin"]];
+const SUB={
+  tatami:{table:"sagyou_meisai_tatami",date:"meisai_denpyo_date_tatami",seik:"meisai_seikyusha_tatami",bunrui:"shouhin_bunrui_tatami",size:"size_tatami",color:"color_tatami",maisu:"maisu_tatami",sonota:"tanka_sonota_tatami",sonotaN:"sonota_naiyou_tatami",ops:TATAMI_OPS},
+  misin:{table:"sagyou_meisai_misin",date:"meisai_denpyo_date_misin",seik:"meisai_seikyusha_misin",bunrui:"shouhin_bunrui_misin",size:"size_misin",color:"color_misin",maisu:"maisu_misin",sonota:"tanka_sonota_misin",sonotaN:"sonota_naiyou_misin",ops:MISIN_OPS},
+};
+
+/* ===== 1ブロック（1商品）のHTML：紙どおりの罫線・空欄配置（スタッフ用と同一） ===== */
+function blockHTML(){
+  const tatOp=(o)=>`<td class="d-tat"><input data-price="${o[1]}" data-type="tatami" inputmode="numeric"></td>`;
+  const misOp=(o)=>`<td class="d-mis"><input data-price="${o[1]}" data-type="misin" inputmode="numeric"></td>`;
+  return `
+  <div class="blockwrap">
+  <table class="block">
+    <colgroup>
+      <col class="colw-info"><col class="colw-info">
+      <col class="colw-op"><col class="colw-op"><col class="colw-op"><col class="colw-op"><col class="colw-op">
+      <col class="colw-info"><col class="colw-op"><col class="colw-op">
+      <col class="colw-sum"><col class="colw-maisu"><col class="colw-sum">
+    </colgroup>
+    <tr>
+      <th class="binfo">商品分類</th><th class="binfo">サイズ</th>
+      <th class="tat">OPP入</th><th class="tat">シール貼</th><th class="tat">下札付</th><th class="tat">投込</th><th class="tat">十字梱包</th>
+      <th class="binfo">その他<br>内容</th><th class="binfo">その他<br>単価</th><th class="sp"></th>
+      <th class="sumh">合計単価</th><th class="binfo">枚数</th><th class="sumh">小計</th>
+    </tr>
+    <tr>
+      <td class="txt prod" rowspan="3"><input data-k="bunrui" class="big"></td>
+      <td class="txt"><input data-k="size"></td>
+      ${TATAMI_OPS.map(tatOp).join("")}
+      <td class="txt"><input data-k="sonotaN"></td>
+      <td><input data-k="sonota" inputmode="numeric"></td>
+      <td class="sp"></td>
+      <td class="d-sum" data-calc="goukei" rowspan="3">0</td>
+      <td rowspan="3"><input data-k="maisu" class="big" inputmode="numeric"></td>
+      <td class="d-sum" data-calc="shoukei" rowspan="3">0</td>
+    </tr>
+    <tr>
+      <th class="binfo">カラー</th>
+      ${MISIN_OPS.map(o=>`<th class="mis">${o[0]}</th>`).join("")}
+    </tr>
+    <tr>
+      <td class="txt"><input data-k="color"></td>
+      ${MISIN_OPS.map(misOp).join("")}
+    </tr>
+  </table>
+  <div class="mixbar" style="display:none">
+    <span>⚠ この行は <b>たたみ系＋ミシン系</b> の混在です。「その他」の記録先：</span>
+    <select class="sonota-side">
+      <option value="tatami">たたみ系に記録</option>
+      <option value="misin">ミシン系に記録</option>
+    </select>
+  </div>
+  </div>`;
+}
+
+let sheetCounter=0;
+/* 請求者は本人固定（readonly）。マスタ選択・編集は不可 */
+function sheetHTML(){
+  sheetCounter++;
+  return `
+  <div class="sheet" data-sheet="${sheetCounter}">
+    <div class="sheet-hd">
+      <div class="sheet-top">
+        <span class="title">作業納品書</span>
+        <span class="hd-line" style="margin:0;gap:6px">
+          <input type="date" class="h-date" style="border-bottom:1.5px solid var(--thin)">
+          <span class="lbl">受注番号<span class="req">必須</span></span>
+          <input class="h-juchu" inputmode="numeric" style="width:100px;text-align:center">
+          <button class="qr-btn" type="button">📷 加工指示書のQRで自動入力</button>
+        </span>
+        <span class="sno">シート #${sheetCounter}</span>
+        <button class="del-sheet" type="button">シート削除</button>
+      </div>
+      <div class="hd-line">
+        <span class="lbl">株式会社 松栄シルク</span>
+        <input class="h-nofuku" placeholder="納品先" style="width:150px;text-align:center">
+        <span class="lbl">様</span>
+        <span style="width:14px"></span>
+        <span class="seikbox"><span class="lbl">請求者</span>
+          <input class="h-seik" value="${escHtml(BOOT.name)}" readonly tabindex="-1" style="width:152px"></span>
+      </div>
+      <div class="hd-line">
+        <span class="lbl">得意先</span><input class="h-tokui" placeholder="" style="width:340px;text-align:center">
+        <span class="lbl">案件名</span><input class="h-anken" placeholder="" style="width:520px;text-align:center">
+      </div>
+    </div>
+    <div class="blocks">${blockHTML().repeat(4)}</div>
+    <div class="sheet-ft">
+      <span>この伝票　合計枚数 <b class="s-maisu">0</b> 枚</span>
+      <span>金額 <b class="s-kingaku">0</b> 円</span>
+    </div>
+  </div>`;
+}
+
+/* ===== 計算（スタッフ用と同一） ===== */
+function recalcBlock(tbl){
+  let tot=0;
+  tbl.querySelectorAll("input[data-price]").forEach(i=>tot+=parseFloat(i.value)||0);
+  tot+=parseFloat(tbl.querySelector("[data-k='sonota']").value)||0;
+  const maisu=parseFloat(tbl.querySelector("[data-k='maisu']").value)||0;
+  tbl.querySelector("[data-calc='goukei']").textContent=tot;
+  tbl.querySelector("[data-calc='shoukei']").textContent=(tot*maisu).toLocaleString();
+  // 混在（たたみ・ミシン両方に単価あり）なら「その他の記録先」選択欄を表示
+  const hasT=[...tbl.querySelectorAll("input[data-type='tatami']")].some(i=>i.value.trim()!=="");
+  const hasM=[...tbl.querySelectorAll("input[data-type='misin']")].some(i=>i.value.trim()!=="");
+  const hasSonota=(tbl.querySelector("[data-k='sonota']").value.trim()!=="")||(tbl.querySelector("[data-k='sonotaN']").value.trim()!=="");
+  const wrap=tbl.closest(".blockwrap");
+  if(wrap){const bar=wrap.querySelector(".mixbar");if(bar)bar.style.display=(hasT&&hasM&&hasSonota)?"flex":"none";}
+  return {maisu,kingaku:tot*maisu};
+}
+function recalcSheet(sheet){
+  let m=0,k=0;
+  sheet.querySelectorAll("table.block").forEach(t=>{const r=recalcBlock(t);m+=r.maisu;k+=r.kingaku;});
+  sheet.querySelector(".s-maisu").textContent=m;
+  sheet.querySelector(".s-kingaku").textContent=k.toLocaleString();
+}
+function recalcAll(){
+  let m=0,k=0;
+  document.querySelectorAll(".sheet").forEach(s=>{
+    recalcSheet(s);
+    m+=parseFloat(s.querySelector(".s-maisu").textContent.replace(/,/g,""))||0;
+    k+=parseFloat(s.querySelector(".s-kingaku").textContent.replace(/,/g,""))||0;
+  });
+  document.getElementById("grandMaisu").textContent=m;
+  document.getElementById("grandKingaku").textContent=k.toLocaleString();
+  checkWarn();
+}
+
+/* ===== 読み取り（スタッフ用と同一） ===== */
+function readBlock(tbl){
+  const g=k=>{const el=tbl.querySelector(`[data-k='${k}']`);return el?el.value.trim():"";};
+  const prices={};
+  tbl.querySelectorAll("input[data-price]").forEach(i=>{if(i.value.trim()!=="")prices[i.dataset.price]={v:i.value.trim(),type:i.dataset.type};});
+  const wrap=tbl.closest(".blockwrap");
+  const sel=wrap?wrap.querySelector(".sonota-side"):null;
+  const sonotaSide=sel?sel.value:"tatami";
+  const line={bunrui:g("bunrui"),size:g("size"),color:g("color"),maisu:g("maisu"),sonota:g("sonota"),sonotaN:g("sonotaN"),prices,sonotaSide};
+  const any=line.bunrui||line.size||line.color||line.maisu||line.sonota||line.sonotaN||Object.keys(prices).length;
+  return any?line:null;
+}
+function readSheet(sheet){
+  const v=c=>{const el=sheet.querySelector(c);return el?el.value.trim():"";};
+  const lines=[];
+  sheet.querySelectorAll("table.block").forEach(t=>{const l=readBlock(t);if(l)lines.push(l);});
+  if(lines.length===0) return null;
+  /* 請求者はサーバーで本人固定されるため送っても参考値。BOOT.name を使う */
+  return {date:v(".h-date"),seik:BOOT.name,tokui:v(".h-tokui"),anken:v(".h-anken"),juchu:v(".h-juchu"),lines};
+}
+/* 送信済み（ロック済み）シートは対象外。控え生成・ロックのためシート要素も一緒に返す */
+function readAllEntries(){
+  const out=[];
+  document.querySelectorAll(".sheet").forEach(s=>{
+    if(s.dataset.locked)return;
+    const r=readSheet(s);
+    if(r)out.push({sheet:s,slip:r});
+  });
+  return out;
+}
+function readAll(){return readAllEntries().map(e=>e.slip);}
+
+/* ===== 種別振り分け（スタッフ用と同一） ===== */
+function classifyLine(line){
+  const hasT=Object.values(line.prices).some(p=>p.type==="tatami");
+  const hasM=Object.values(line.prices).some(p=>p.type==="misin");
+  const out=[];let warn=null;
+  const mk=(table,extraSonota)=>{const def=SUB[table];const f={};
+    f[def.bunrui]=line.bunrui;f[def.size]=line.size;f[def.color]=line.color;f[def.maisu]=line.maisu;
+    def.ops.forEach(o=>{if(line.prices[o[1]])f[o[1]]=line.prices[o[1]].v;});
+    if(extraSonota){if(line.sonota)f[def.sonota]=line.sonota;if(line.sonotaN)f[def.sonotaN]=line.sonotaN;}
+    return {table,fields:f};};
+  if(hasT&&hasM){
+    const side=line.sonotaSide==="misin"?"misin":"tatami";
+    out.push(mk("tatami",side==="tatami"));
+    out.push(mk("misin",side==="misin"));
+  }
+  else if(hasT){out.push(mk("tatami",true));}
+  else if(hasM){out.push(mk("misin",true));}
+  else {out.push(mk("tatami",true));warn=`「${line.bunrui||"(商品分類未入力)"}」は作業単価が未入力です。単価のマスに金額を入れてください。`;}
+  return {rows:out,warn};
+}
+function checkWarn(){
+  const warns=[];const slips=readAll();
+  slips.forEach((s,i)=>{
+    if(!s.juchu) warns.push(`シート${i+1}: 受注番号が入っていません。加工指示書のQRを読み取ってください。`);
+    s.lines.forEach(l=>{const c=classifyLine(l);if(c.warn)warns.push(`シート${i+1}: ${c.warn}`);});
+  });
+  const box=document.getElementById("warnBox");
+  if(warns.length){box.style.display="block";box.innerHTML="⚠ "+warns.join("<br>⚠ ");}
+  else {box.style.display="none";box.innerHTML="";} // 解消済みの警告文を残さない
+}
+
+/* ===== kintoneレコード組み立て（スタッフ用と同一。請求者はサーバーで本人に上書きされる） ===== */
+function buildKintoneRecords(slips){
+  return slips.map(s=>{
+    const record={};
+    if(s.juchu){
+      record["juchuno"]={value:s.juchu};
+    }else{
+      record["tokuisakimei"]={value:s.tokui||""};
+      record["anken_mei"]={value:s.anken||""};
+    }
+    const rows={tatami:[],misin:[]};
+    s.lines.forEach(l=>classifyLine(l).rows.forEach(r=>{
+      const d=SUB[r.table];
+      const f={};
+      if(s.date) f[d.date]={value:s.date};
+      f[d.seik]={value:s.seik||""};
+      Object.keys(r.fields).forEach(k=>{if(r.fields[k]!=="")f[k]={value:r.fields[k]};});
+      rows[r.table].push({value:f});
+    }));
+    if(rows.tatami.length) record[SUB.tatami.table]={value:rows.tatami};
+    if(rows.misin.length) record[SUB.misin.table]={value:rows.misin};
+    return record;
+  });
+}
+
+/* ===== 控えデータ（正規オブジェクト）: スタッフ用 buildKaeDetail と同一形式 ===== */
+const OP_LABELS=TATAMI_OPS.concat(MISIN_OPS); // [ラベル, フィールドコード]
+function buildKaeDetail(e){
+  const s=e.slip;
+  const num=t=>parseFloat(String(t).replace(/,/g,""))||0;
+  const lines=s.lines.map(l=>{
+    const used=[];
+    OP_LABELS.forEach(o=>{if(l.prices[o[1]])used.push(`${o[0]} ${l.prices[o[1]].v}円`);});
+    if(l.sonota)used.push(`${l.sonotaN||"その他"} ${l.sonota}円`);
+    let tanka=0;
+    Object.values(l.prices).forEach(p=>tanka+=parseFloat(p.v)||0);
+    tanka+=parseFloat(l.sonota)||0;
+    const maisu=parseFloat(l.maisu)||0;
+    // raw: 〔訂正して出し直す〕でフォームに正確に復元するための機械可読データ（控えの表示には使わない）
+    const prices={};
+    Object.keys(l.prices).forEach(code=>{prices[code]=l.prices[code].v;});
+    return {bunrui:l.bunrui,size:l.size,color:l.color,used:used.join("、"),
+      tanka:tanka,maisu:maisu,shoukei:tanka*maisu,
+      raw:{bunrui:l.bunrui,size:l.size,color:l.color,maisu:l.maisu,
+        prices:prices,sonota:l.sonota,sonotaN:l.sonotaN,sonotaSide:l.sonotaSide}};
+  });
+  return {
+    seik:BOOT.name,code:BOOT.code,date:s.date,
+    tokui:s.tokui,anken:s.anken,juchu:s.juchu,
+    maisu:num(e.sheet.querySelector(".s-maisu").textContent),
+    kingaku:num(e.sheet.querySelector(".s-kingaku").textContent),
+    lines:lines,
+  };
+}
+
+/* ===== 控えHTML（スタッフ用と同一ロジック） ===== */
+function kaeHTML(d,issue,reissue,teisei){
+  const rows=(d.lines||[]).map(l=>{
+    const tanka=Number(l.tanka)||0,maisu=Number(l.maisu)||0,shoukei=Number(l.shoukei)||0;
+    return `<tr><td class="c">${escHtml(l.bunrui)}</td><td class="c">${escHtml(l.size)}</td><td class="c">${escHtml(l.color)}</td>`+
+      `<td>${escHtml(l.used)}</td><td class="r">${tanka.toLocaleString()}</td><td class="r">${maisu.toLocaleString()}</td><td class="r">${shoukei.toLocaleString()}</td></tr>`;
+  }).join("");
+  const t=teisei||{};
+  const voidNo=t.ato&&String(t.ato).trim();   // この控えは訂正された（無効）＝新しい控え番号
+  const redoNo=t.moto&&String(t.moto).trim(); // この控えは訂正版＝元の控え番号
+  const voidBanner=voidNo?`<div class="kae-void">⚠ この控えは無効です — 控え番号 ${escHtml(voidNo)} で訂正・再発行されました</div>`:"";
+  const redoBadge=redoNo?`<div class="kae-redo">訂正版（元の控え番号 ${escHtml(redoNo)}）</div>`:"";
+  const juchuNote=d.juchu?`<br>※受注番号 ${escHtml(d.juchu)} の既存レコードのため、得意先名・案件名はkintoneの受注情報が正となります。`:"";
+  const reissueNote=reissue?`<br>※再発行（元番号 ${escHtml(issue.kaeNo)} / 発行 ${escHtml(issue.sentAt)} / 再発行 ${escHtml(reissue.at)}）。控え番号は元番号のままです。`:"";
+  const teiseiNote=voidNo?`<br>※この控えは無効です。最新の控えは番号 ${escHtml(voidNo)} です。`
+    :(redoNo?`<br>※この控えは控え番号 ${escHtml(redoNo)} を訂正して出し直したものです（元の控えは無効になります）。`:"");
+  return `<div class="kae${voidNo?" kae-isvoid":""}">
+    <h2>作業納品書（控え）</h2>
+    ${voidBanner}
+    <div class="kae-meta">
+      <div>
+        請求者：<b>${escHtml(d.seik)}</b>（内職さんコード：${escHtml(d.code)}）<br>
+        得意先：${escHtml(d.tokui)}　案件名：${escHtml(d.anken)}${d.juchu?`　受注番号：${escHtml(d.juchu)}`:""}<br>
+        作業日：${escHtml(d.date)}
+      </div>
+      <div style="text-align:right">
+        <span class="kae-no">控え番号：${escHtml(issue.kaeNo)}</span>${redoBadge}<br>
+        送信日時：${escHtml(issue.sentAt)}<br>
+        kintoneレコード番号：${escHtml(issue.recordId)}（${escHtml(issue.modeLabel)}）
+      </div>
+    </div>
+    <table>
+      <tr><th>商品分類</th><th>サイズ</th><th>カラー</th><th>使った作業と単価</th><th>合計単価</th><th>枚数</th><th>小計</th></tr>
+      ${rows}
+    </table>
+    <div class="kae-total"><span>合計枚数 ${(Number(d.maisu)||0).toLocaleString()} 枚</span><span>合計金額 ${(Number(d.kingaku)||0).toLocaleString()} 円</span></div>
+    <div class="kae-note">この控えは登録済みの内容です。修正が必要な場合は会社までご連絡ください。${juchuNote}${reissueNote}${teiseiNote}</div>
+  </div>`;
+}
+
+/* ===== 送信 ===== */
+function submitAll(){
+  const entries=readAllEntries();
+  if(entries.length===0){alert("入力された伝票がありません。（送信済みシートは対象外です）");return;}
+  const slips=entries.map(e=>e.slip);
+  // 受注番号は必須（1レコード＝1受注番号の運用。得意先名・案件名等はここからの自動コピー）
+  const noJuchu=entries.filter(e=>!e.slip.juchu);
+  if(noJuchu.length){
+    alert(`受注番号が入っていないシートがあります（シート#${noJuchu.map(e=>e.sheet.dataset.sheet).join("、#")}）。\n〔📷 加工指示書のQRで自動入力〕でQRを読み取るか、受注番号を入力してから送信してください。`);
+    noJuchu[0].sheet.querySelector(".h-juchu").focus();
+    return;
+  }
+  if(!confirm(`入力した内容（${entries.length}枚分）を送信します。よろしいですか？\n送信できたら控えが印刷されます。`))return;
+
+  const records=buildKintoneRecords(slips);
+  const items=entries.map((e,i)=>{
+    // 控えデータ（正規オブジェクト）を1度だけ作り、控えの描画と発行ログ保存（再発行用）の両方に使う
+    const d=buildKaeDetail(e);
+    e.kaeDetail=d;
+    return {record:records[i],meta:{
+      date:d.date,maisu:d.maisu,kingaku:d.kingaku,
+      tokui:d.tokui,anken:d.anken,juchu:d.juchu,
+      kaeDetail:d,
+      origKaeNo:e.sheet.dataset.origKae||"", // 訂正版シートなら元の控え番号
+    }};
+  });
+
+  const btn=document.getElementById("btnSend");
+  btn.disabled=true;
+  setStatus("busy","送信中です。そのままお待ちください…");
+
+  google.script.run
+    .withSuccessHandler(results=>{btn.disabled=false;handleSendResults(entries,results);})
+    .withFailureHandler(err=>{
+      btn.disabled=false;
+      setStatus("err","✖ 送信に失敗しました。\n"+errText(err)+"\nもう一度〔送信する〕を押してみてください。何度も失敗するときは会社までご連絡ください。");
+    })
+    .submitMyRecords(BOOT.token,items);
+}
+
+/* ===== 送信結果 → 控え生成・印刷・シートロック（スタッフ用と同一の流れ） ===== */
+const KAE_HTML_BY_SHEET=new Map(); // シート→控えHTML。〔控えを再印刷〕用
+function handleSendResults(entries,results){
+  const printArea=document.getElementById("printArea");
+  printArea.innerHTML=""; // 前回分の控えが再印刷されないよう毎回作り直す
+  const okMsgs=[],errMsgs=[];
+  (results||[]).forEach(r=>{
+    const e=entries[r.index];
+    if(!e)return;
+    const sno=e.sheet.dataset.sheet;
+    if(r.ok){
+      if(r.kaeNo){
+        const html=kaeHTML(e.kaeDetail,{kaeNo:r.kaeNo,sentAt:r.sentAt,recordId:r.recordId,
+          modeLabel:r.mode==="updated"?"既存レコードへ追記":"新規作成"},null,
+          {moto:e.sheet.dataset.origKae||""}); // 訂正版なら「元の控え番号」を控えに明記
+        KAE_HTML_BY_SHEET.set(e.sheet,html);
+        printArea.insertAdjacentHTML("beforeend",html);
+      }
+      lockSheet(e.sheet,r);
+      historyDirty=true; // 履歴タブを次に開いたとき再読み込みする
+      okMsgs.push(`シート#${sno}: 送信できました（控え番号 ${r.kaeNo||"発行エラー"}）`);
+      if(r.kaeError)errMsgs.push(`シート#${sno}: 登録は成功しましたが控え番号を発行できませんでした（${r.kaeError}）`);
+    }else{
+      errMsgs.push(`シート#${sno}: ${r.error}`);
+    }
+  });
+  let msg="";
+  if(okMsgs.length)msg+="✔ "+okMsgs.join(" ／ ");
+  if(errMsgs.length)msg+=(msg?"\n":"")+"✖ "+errMsgs.join("\n✖ ")+"\n※失敗したシートは修正してもう一度送信できます。";
+  setStatus(errMsgs.length?"err":"ok",msg||"結果を取得できませんでした。会社までご連絡ください。");
+  if(printArea.children.length){
+    setTimeout(()=>window.print(),300); // ロック表示の描画を待ってから印刷
+  }
+}
+
+/* 送信成功したシートを編集不可にロックし、二重送信・後編集を防ぐ */
+function lockSheet(sheet,r){
+  sheet.dataset.locked="1";
+  sheet.classList.add("locked");
+  sheet.querySelectorAll("input").forEach(i=>{i.readOnly=true;i.tabIndex=-1;});
+  sheet.querySelectorAll("select").forEach(sel=>sel.disabled=true);
+  const del=sheet.querySelector(".del-sheet");
+  if(del)del.style.display="none";
+  const qr=sheet.querySelector(".qr-btn");
+  if(qr)qr.style.display="none";
+  const cc=sheet.querySelector(".corr-cancel"); // 送信済みの訂正シートは「訂正をやめる」不可
+  if(cc)cc.style.display="none";
+  const mark=document.createElement("span");
+  mark.className="sentmark";
+  mark.textContent=`送信済｜控え番号 ${r.kaeNo||"（発行エラー）"}`;
+  const top=sheet.querySelector(".sheet-top");
+  top.insertBefore(mark,top.querySelector(".sno"));
+  // 印刷し忘れ対策: タブを開いている間は同じ控えを何度でも再印刷できる（再採番・再登録はしない）
+  if(KAE_HTML_BY_SHEET.has(sheet)){
+    const rp=document.createElement("button");
+    rp.type="button";
+    rp.className="reprint";
+    rp.textContent="控えを再印刷";
+    rp.onclick=()=>{
+      const pa=document.getElementById("printArea");
+      pa.innerHTML=KAE_HTML_BY_SHEET.get(sheet); // このシートの控えだけに差し替え
+      window.print();
+    };
+    top.insertBefore(rp,top.querySelector(".sno"));
+  }
+}
+
+/* ===== Enterの移動順（スタッフ用と同一） ===== */
+const ENTER_SEQ=[
+  ["k","bunrui"],["k","size"],["k","color"],
+  ["p","tanka_opp_tatami"],["p","tanka_seal_tatami"],["p","tanka_sagefuda_tatami"],["p","tanka_nagekomi_tatami"],["p","tanka_juji_tatami"],
+  ["k","sonotaN"],["k","sonota"],
+  ["p","tanka_ippen_misin"],["p","tanka_nihen_misin"],["p","tanka_shihou_misin"],["p","tanka_cut_misin"],["p","tanka_sizetsuke_misin"],["p","tanka_sentaku_misin"],["p","tanka_pis_misin"],["p","tanka_iron_misin"],
+  ["k","maisu"],
+];
+function blockOrder(tbl){
+  return ENTER_SEQ.map(s=>tbl.querySelector(s[0]==="k"?`[data-k='${s[1]}']`:`[data-price='${s[1]}']`)).filter(Boolean);
+}
+
+/* ===== シート操作（スタッフ用と同一。請求者関連の処理のみ削除） ===== */
+/* 受注番号があるシートは得意先・案件名（と納品先）がルックアップ／受注情報で確定するため編集をロック */
+function syncLookupLock(sheet){
+  const lock=sheet.querySelector(".h-juchu").value.trim()!=="";
+  [".h-tokui",".h-anken",".h-nofuku"].forEach(c=>{
+    const el=sheet.querySelector(c);
+    el.readOnly=lock;
+    el.style.opacity=lock?".6":"";
+    el.title=lock?"受注番号から自動で決まるため、入力しなくて大丈夫です":"";
+  });
+}
+function wireSheet(sheet){
+  // ブラウザのオートフィル（直前の入力値を次のマスへ補完）を無効化
+  sheet.querySelectorAll("input").forEach(i=>{
+    i.setAttribute("autocomplete","off_"+Math.random().toString(36).slice(2));
+    i.setAttribute("autocapitalize","off");
+    i.setAttribute("autocorrect","off");
+    i.setAttribute("spellcheck","false");
+    i.setAttribute("name","f_"+Math.random().toString(36).slice(2));
+  });
+  sheet.addEventListener("input",()=>{recalcAll();syncLookupLock(sheet);});
+  sheet.querySelector(".del-sheet").onclick=()=>{
+    if(document.querySelectorAll(".sheet").length===1){alert("最後の1シートは削除できません。");return;}
+    if(confirm("このシートを削除しますか？")){sheet.remove();recalcAll();}
+  };
+  // QR読み取り（このシートを対象に開く）
+  sheet.querySelector(".qr-btn").onclick=()=>openQrModal(sheet);
+  // 受注番号の手入力（QRが読めないとき用）: 確定時に受注情報を取得して自動コピー
+  sheet.querySelector(".h-juchu").addEventListener("change",()=>fetchOrderByJuchu(sheet));
+  // Enter＝定義した順で次のマスへフォーカス移動するだけ（値のコピーはしない）
+  const order=[];
+  sheet.querySelectorAll("table.block").forEach(b=>order.push(...blockOrder(b)));
+  order.forEach((inp,i)=>{
+    inp.addEventListener("keydown",e=>{
+      if(e.key==="Enter"){
+        if(e.isComposing||e.keyCode===229) return; // IME変換確定中は移動しない
+        e.preventDefault();
+        const next=order[i+1];
+        if(next) next.focus();
+      }
+    });
+  });
+}
+function addSheet(carry){
+  const div=document.createElement("div");
+  div.innerHTML=sheetHTML().trim();
+  const sheet=div.firstChild;
+  document.getElementById("sheets").appendChild(sheet);
+  sheet.querySelector(".h-date").value=new Date().toISOString().slice(0,10);
+  if(carry){
+    sheet.querySelector(".h-tokui").value=carry.tokui||"";
+    sheet.querySelector(".h-nofuku").value=carry.nofuku||"";
+    sheet.querySelector(".h-juchu").value=carry.juchu||"";
+    sheet.querySelector(".h-anken").value=carry.anken||"";
+  }
+  wireSheet(sheet);
+  syncLookupLock(sheet);
+  recalcAll();
+  return sheet;
+}
+
+/* ===== 加工指示書QRによる受注情報の自動入力 =====
+   QRの中身はアプリ38のレコード詳細URL。開くにはkintoneログインが要るため「開かず」に
+   レコード番号だけを抽出し、サーバー経由（有効トークン必須）でAPI参照する。 */
+
+/* アプリ38のURLからレコード番号を抽出（#record= / ?record= / &record= とゲストスペースURLに対応）。
+   38以外のアプリのURLや無関係の文字列は null */
+function parseApp38Url(text){
+  const m=String(text||"").match(/\/k\/(?:guest\/\d+\/)?38\/show[^\s]*?[#?&]record=(\d+)/);
+  return m?m[1]:null;
+}
+
+/* 取得した受注情報をシートへ反映し、確定欄をロックする（送信時はルックアップで確定） */
+function applyOrderInfo(sheet,info){
+  sheet.querySelector(".h-juchu").value=info.juchuno||"";
+  sheet.querySelector(".h-tokui").value=info.tokui||"";
+  sheet.querySelector(".h-anken").value=info.anken||"";
+  sheet.querySelector(".h-nofuku").value=info.tanto||"";
+  syncLookupLock(sheet);
+  checkWarn(); // 受注番号の未入力警告を消す（値の設定ではinputイベントが出ないため）
+  setStatus("ok",`✔ 受注番号 ${info.juchuno} の情報を入力しました（得意先: ${info.tokui}／案件名: ${info.anken}${info.shukkaDate?`／出荷日: ${info.shukkaDate}`:""}）`);
+}
+
+/* 受注番号の手入力（QRが読めないとき用の保険経路） */
+function fetchOrderByJuchu(sheet){
+  const juchu=sheet.querySelector(".h-juchu").value.trim();
+  if(!juchu)return;
+  setStatus("busy",`受注番号 ${juchu} の情報を確認中…`);
+  google.script.run
+    .withSuccessHandler(info=>{
+      if(info&&info.found){applyOrderInfo(sheet,info);}
+      /* kintone側の異常を「番号違い」と同じ文言にすると、打ち直しを誘発してさらに
+         リクエストを消費するため、原因を分けて出す。 */
+      else if(info&&info.error){setStatus("err","✖ "+info.message);}
+      else setStatus("err",`✖ 受注番号「${juchu}」が見つかりませんでした。番号をお確かめください。`);
+    })
+    .withFailureHandler(err=>setStatus("err","✖ 受注情報の取得に失敗しました。\n"+errText(err)))
+    .getOrderInfo(BOOT.token,juchu);
+}
+
+/* QR解読ライブラリ（jsQR）は初回に必要になったときだけCDNから読み込む。
+   html5-qrcode ではなく jsQR を使う理由: 画像を高解像度のままタイル分割して解読できるため、
+   指示書全体を写した写真の中の小さいQRも読める（近接撮影でボケる問題の回避）。 */
+let qrLibPromise=null;
+function loadQrLib(){
+  if(qrLibPromise)return qrLibPromise;
+  qrLibPromise=new Promise((resolve,reject)=>{
+    const s=document.createElement("script");
+    s.src="vendor/jsqr.js";
+    s.onload=resolve;
+    s.onerror=()=>{qrLibPromise=null;reject(new Error("読み取り用プログラムを読み込めませんでした。通信状態をご確認ください。"));};
+    document.head.appendChild(s);
+  });
+  return qrLibPromise;
+}
+
+let qrTargetSheet=null;
+let qrHandled=false; // 同じQRの連続検出で二重処理しないためのフラグ
+let qrStream=null,qrTimer=null,qrVideo=null;
+function qrMsg(t){document.getElementById("qrMsg").textContent=t;}
+
+function openQrModal(sheet){
+  qrTargetSheet=sheet;
+  qrHandled=false;
+  document.getElementById("qrModal").classList.add("open");
+  qrMsg("カメラの使用を確認する画面が出たら「許可」を押してください。加工指示書のQRコードを映してください。");
+  loadQrLib().then(startCamera).catch(e=>qrMsg("✖ "+e.message+" 「写真から読み取る」もお試しください。"));
+}
+/* ライブカメラ: getUserMedia + jsQR の定期解読。
+   GASのWebアプリはGoogleのiframe内で動くため、端末によってはカメラが許可されない。
+   その場合は「写真から読み取る」へ誘導する（そちらは必ず動く）。 */
+function startCamera(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){cameraFail_();return;}
+  navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:{ideal:1280},height:{ideal:720}},audio:false})
+    .then(stream=>{
+      qrStream=stream;
+      const reader=document.getElementById("qrReader");
+      reader.innerHTML="";
+      qrVideo=document.createElement("video");
+      qrVideo.setAttribute("playsinline",""); // iOSで全画面にせずインライン再生
+      qrVideo.muted=true;
+      qrVideo.srcObject=stream;
+      reader.appendChild(qrVideo);
+      qrVideo.play().catch(()=>{});
+      qrMsg("加工指示書のQRコードを画面に映してください。読み取れたら自動で入力されます。");
+      const canvas=document.createElement("canvas");
+      const ctx=canvas.getContext("2d",{willReadFrequently:true});
+      qrTimer=setInterval(()=>{
+        if(qrHandled||!qrVideo||qrVideo.readyState<2)return;
+        const vw=qrVideo.videoWidth,vh=qrVideo.videoHeight;
+        if(!vw)return;
+        const sc=Math.min(1,900/Math.max(vw,vh));
+        canvas.width=Math.round(vw*sc);canvas.height=Math.round(vh*sc);
+        ctx.drawImage(qrVideo,0,0,canvas.width,canvas.height);
+        const d=ctx.getImageData(0,0,canvas.width,canvas.height);
+        const r=jsQR(d.data,canvas.width,canvas.height,{inversionAttempts:"dontInvert"});
+        if(r&&r.data)onQrText(r.data);
+      },300);
+    })
+    .catch(()=>cameraFail_());
+}
+function cameraFail_(){
+  qrMsg("この端末ではカメラを直接使えないようです。下の「写真から読み取る」を押してQRの写真を撮ってください。指示書全体が写る距離で大丈夫です（QRが小さくても読み取れます）。");
+}
+function stopCamera(){
+  if(qrTimer){clearInterval(qrTimer);qrTimer=null;}
+  if(qrStream){qrStream.getTracks().forEach(t=>t.stop());qrStream=null;}
+  if(qrVideo){qrVideo.srcObject=null;qrVideo.remove();qrVideo=null;}
+}
+function closeQrModal(){
+  stopCamera();
+  document.getElementById("qrModal").classList.remove("open");
+}
+function onQrText(text){
+  if(qrHandled)return;
+  const rid=parseApp38Url(text);
+  if(!rid){
+    qrMsg("これは加工指示書のQRではないようです。加工指示書に印刷されているQRコードを読み取ってください。");
+    return; // カメラは動かしたまま読み取り直しを待つ
+  }
+  qrHandled=true;
+  closeQrModal();
+  setStatus("busy","加工指示書の情報を取得中…");
+  google.script.run
+    .withSuccessHandler(info=>{
+      if(info&&info.found){applyOrderInfo(qrTargetSheet,info);}
+      else if(info&&info.error){setStatus("err","✖ "+info.message);}
+      else setStatus("err","✖ 加工指示書の情報が見つかりませんでした。受注番号の手入力もお試しください。");
+    })
+    .withFailureHandler(err=>setStatus("err","✖ 加工指示書の情報の取得に失敗しました。\n"+errText(err)))
+    .getOrderInfoByApp38Record(BOOT.token,rid);
+}
+/* ===== 写真からの読み取り（カメラが使えない端末用のメイン経路） =====
+   指示書全体を写した写真の中の小さいQRを読むため、
+   ①全体を中/高解像度で解読 → ②高解像度キャンバスを2x2・3x3タイル（20%重なり）に分けて解読、の順で試す。 */
+function jsQRRegion_(canvas,sx,sy,sw,sh){
+  const d=canvas.getContext("2d").getImageData(sx,sy,sw,sh);
+  const r=jsQR(d.data,sw,sh,{inversionAttempts:"attemptBoth"});
+  return r&&r.data?r.data:null;
+}
+function decodeBitmap_(img,iw,ih){
+  const mk=(maxDim)=>{
+    const sc=Math.min(1,maxDim/Math.max(iw,ih));
+    const c=document.createElement("canvas");
+    c.width=Math.max(1,Math.round(iw*sc));
+    c.height=Math.max(1,Math.round(ih*sc));
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    return c;
+  };
+  // ① 全体（QRが大きめに写っている場合はここで決まる）
+  for(const dim of [1000,1800]){
+    const c=mk(dim);
+    const t=jsQRRegion_(c,0,0,c.width,c.height);
+    if(t)return t;
+  }
+  // ② 高解像度のままタイル分割（A4全体の写真の中の小さいQR対策）
+  const big=mk(2600);
+  for(const n of [2,3]){
+    const tw=Math.ceil(big.width/n),th=Math.ceil(big.height/n);
+    const ox=Math.round(tw*0.2),oy=Math.round(th*0.2); // 境界にかかったQR用の重なり
+    for(let y=0;y<n;y++){
+      for(let x=0;x<n;x++){
+        const sx=Math.max(0,x*tw-ox),sy=Math.max(0,y*th-oy);
+        const sw=Math.min(big.width-sx,tw+ox*2),sh=Math.min(big.height-sy,th+oy*2);
+        const t=jsQRRegion_(big,sx,sy,sw,sh);
+        if(t)return t;
+      }
+    }
+  }
+  return null;
+}
+function scanQrFile(file){
+  if(!file)return;
+  qrMsg("写真からQRを読み取り中…（数秒かかることがあります）");
+  loadQrLib().then(()=>{
+    stopCamera();
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      // メッセージ描画を待ってから解読（解読中は画面が数秒固まるため）
+      setTimeout(()=>{
+        let text=null;
+        try{text=decodeBitmap_(img,img.naturalWidth,img.naturalHeight);}catch(e){}
+        if(text)onQrText(text);
+        else qrMsg("写真からQRを読み取れませんでした。無理に近づけず、指示書全体が写るくらいの距離で、明るい場所でピントを合わせて撮り直してください。");
+      },80);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);qrMsg("写真を読み込めませんでした。もう一度お試しください。");};
+    img.src=url;
+  }).catch(e=>qrMsg("✖ "+e.message));
+}
+document.getElementById("qrClose").onclick=closeQrModal;
+document.getElementById("qrFile").addEventListener("change",function(){
+  scanQrFile(this.files&&this.files[0]);
+  this.value="";
+});
+
+/* ===== 履歴（自分の控え・再印刷） ===== */
+let ROWS=[];
+function renderList(rows,emptyMsg){
+  ROWS=rows||[];
+  const box=document.getElementById("listBox");
+  if(!ROWS.length){
+    box.innerHTML=`<div class="empty">${escHtml(emptyMsg||"該当する控えがありません。")}</div>`;
+    return;
+  }
+  box.innerHTML=`<table class="rjtable">
+    <tr><th>控え番号</th><th>送信日時</th><th>得意先／案件名</th><th>受注番号</th><th>枚数</th><th>金額</th><th></th></tr>
+    ${ROWS.map((k,i)=>{
+      const superseded=k.teiseiAto&&String(k.teiseiAto).trim();
+      const isRedo=k.teiseiMoto&&String(k.teiseiMoto).trim();
+      const badge=superseded
+        ? `<div class="kbadge void">訂正済み → ${escHtml(k.teiseiAto)}</div>`
+        : (isRedo?`<div class="kbadge redo">訂正版 ← ${escHtml(k.teiseiMoto)}</div>`:"");
+      const canRedo=!superseded&&k.detailJson;
+      // 無効（訂正済み）の控えは再印刷不可。行の存在は見せつつグレーアウトで理由を伝える
+      const reprintBtn=superseded
+        ? `<button type="button" class="reprint" disabled title="この控えは無効です（控え番号 ${escHtml(k.teiseiAto)} で訂正済み）">再印刷</button>`
+        : `<button type="button" class="reprint" data-idx="${i}">再印刷</button>`;
+      return `<tr class="${superseded?'void-row':''}">
+        <td>${escHtml(k.kaeNo)}${badge}</td><td>${escHtml(k.sentAt)}</td>
+        <td>${escHtml(k.tokui)}${k.anken?"／"+escHtml(k.anken):""}</td><td class="c">${escHtml(k.juchu)}</td>
+        <td class="r">${(Number(k.maisu)||0).toLocaleString()}</td><td class="r">${(Number(k.kingaku)||0).toLocaleString()}</td>
+        <td class="rjbtns">
+          ${reprintBtn}
+          ${canRedo?`<button type="button" class="redo" data-redo="${i}">訂正して出し直す</button>`:""}
+        </td>
+      </tr>`;
+    }).join("")}
+  </table>`;
+  box.querySelectorAll("button[data-idx]").forEach(b=>{
+    b.onclick=()=>printReissue(ROWS[+b.dataset.idx]);
+  });
+  box.querySelectorAll("button[data-redo]").forEach(b=>{
+    b.onclick=()=>startCorrection(ROWS[+b.dataset.redo]);
+  });
+}
+
+/* ===== 訂正して出し直す（履歴 → 入力フォームへ復元） ===== */
+/* 保存された raw から1ブロックを正確に復元する */
+function fillBlockFromRaw(tbl,raw){
+  const set=(k,v)=>{const el=tbl.querySelector(`[data-k='${k}']`);if(el)el.value=(v==null?"":v);};
+  set("bunrui",raw.bunrui);set("size",raw.size);set("color",raw.color);
+  set("maisu",raw.maisu);set("sonota",raw.sonota);set("sonotaN",raw.sonotaN);
+  const prices=raw.prices||{};
+  tbl.querySelectorAll("input[data-price]").forEach(i=>{
+    const code=i.dataset.price;
+    if(prices[code]!=null&&String(prices[code])!=="")i.value=prices[code];
+  });
+  const wrap=tbl.closest(".blockwrap");
+  const sel=wrap?wrap.querySelector(".sonota-side"):null;
+  if(sel&&raw.sonotaSide)sel.value=raw.sonotaSide;
+}
+function markCorrectionSheet(s,origKaeNo){
+  const top=s.querySelector(".sheet-top");
+  if(!top||top.querySelector(".corr-mark"))return;
+  const span=document.createElement("span");
+  span.className="corr-mark";
+  span.innerHTML=`🔧 訂正版（元 ${escHtml(origKaeNo)}）<button type="button" class="corr-cancel">訂正をやめる</button>`;
+  top.insertBefore(span,top.querySelector(".sno"));
+  span.querySelector(".corr-cancel").onclick=()=>{
+    if(!confirm(`控え ${origKaeNo} の出し直しをやめますか？（入力した内容は消えます）`))return;
+    const fresh=addSheet(null); // 常に空のシートを1枚残す
+    s.remove();recalcAll();
+    setStatus("","");
+    const t=fresh.querySelector(".h-tokui");if(t&&t.focus)t.focus();
+  };
+}
+function startCorrection(row){
+  if(!row.detailJson){setStatus("err",`✖ 控え番号「${row.kaeNo}」は明細データが無いため出し直せません。会社までご連絡ください。`);return;}
+  let d;
+  try{d=JSON.parse(row.detailJson);}
+  catch(e){setStatus("err","✖ 明細データの読み取りに失敗しました。会社までご連絡ください。");return;}
+  const lines=d.lines||[];
+  const noRaw=lines.some(l=>!l.raw); // raw が無い旧控え → 明細は手入力し直し
+  // 入力中（未送信）の内容があれば、破棄してよいか確認してから作業台を作り直す
+  if(readAllEntries().length){
+    if(!confirm("入力中でまだ送信していない内容があります。破棄して、この控えの訂正を始めますか？"))return;
+  }
+  // 作業台を「訂正する1枚」だけにする（他シートの数字と紛れないようにする）
+  document.querySelectorAll(".sheet").forEach(x=>x.remove());
+  const s=addSheet(null);
+  s.dataset.origKae=row.kaeNo;
+  s.querySelector(".h-date").value=d.date||"";
+  s.querySelector(".h-juchu").value=d.juchu||"";
+  s.querySelector(".h-tokui").value=d.tokui||"";
+  s.querySelector(".h-anken").value=d.anken||"";
+  const blocks=s.querySelectorAll("table.block");
+  lines.forEach((l,idx)=>{if(l.raw&&blocks[idx])fillBlockFromRaw(blocks[idx],l.raw);});
+  markCorrectionSheet(s,row.kaeNo);
+  syncLookupLock(s); // 受注番号ありなので得意先・案件名をロック表示に（送信時はkintoneが受注番号で再ルックアップ）
+  recalcAll();
+  showTab("input");
+  if(s.scrollIntoView)s.scrollIntoView({behavior:"smooth",block:"start"});
+  const note=noRaw
+    ? "この控えは明細の自動復元に対応していないため、明細は入力し直してください。"
+    : "内容を直して〔送信する〕を押すと、新しい控え番号で出し直され、元の控えは「訂正済み」になります。";
+  setStatus("ok",`🔧 控え ${row.kaeNo} を出し直します。${note}`);
+}
+
+/* 再印刷（明細JSONから描画。採番・ログ追記・kintone更新なし） */
+function printReissue(row){
+  if(!row.detailJson){
+    setStatus("err",`✖ 控え番号「${row.kaeNo}」は明細データが保存されていないため、この画面からは再印刷できません。\nお手数ですが会社までご連絡ください（発行 ${row.sentAt}／合計 ${row.maisu}枚 ${row.kingaku}円）。`);
+    return;
+  }
+  let detail;
+  try{detail=JSON.parse(row.detailJson);}
+  catch(e){setStatus("err","✖ 明細データの読み取りに失敗しました。お手数ですが会社までご連絡ください。");return;}
+  const pad=n=>("0"+n).slice(-2);
+  const now=new Date();
+  const at=`${now.getFullYear()}/${pad(now.getMonth()+1)}/${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  document.getElementById("printArea").innerHTML=kaeHTML(detail,
+    {kaeNo:row.kaeNo,sentAt:row.sentAt,recordId:row.recordId,
+     modeLabel:row.mode==="追記"?"既存レコードへ追記":"新規作成"},
+    {at:at},
+    {moto:row.teiseiMoto||"",ato:row.teiseiAto||""}); // 訂正版/無効の旨を控えに明記
+  setStatus("ok",`✔ 控え番号 ${row.kaeNo} を再印刷します（元の発行: ${row.sentAt}）。`);
+  window.print();
+}
+
+function loadRecent(){
+  setStatus("busy","直近の控えを読み込み中…");
+  renderList([],"読み込み中…");
+  google.script.run
+    .withSuccessHandler(rows=>{setStatus("","");renderList(rows,"まだ控えがありません。");})
+    .withFailureHandler(err=>setStatus("err","✖ 読み込みに失敗しました。\n"+errText(err)))
+    .getMyKaeRecent(BOOT.token,20);
+}
+function search(){
+  const v=id=>document.getElementById(id).value.trim();
+  const btn=document.getElementById("btnSearch");
+  btn.disabled=true;
+  const done=()=>{btn.disabled=false;};
+  const kaeNo=v("fKaeNo");
+  if(kaeNo){
+    setStatus("busy","控えを検索中…");
+    google.script.run
+      .withSuccessHandler(row=>{done();setStatus("","");renderList(row?[row]:[],`控え番号「${kaeNo}」は見つかりませんでした。`);})
+      .withFailureHandler(err=>{done();setStatus("err","✖ 検索に失敗しました。\n"+errText(err));})
+      .getMyKaeByNumber(BOOT.token,kaeNo);
+    return;
+  }
+  setStatus("busy","控えを検索中…");
+  google.script.run
+    .withSuccessHandler(rows=>{done();setStatus("","");renderList(rows,"条件に合う控えが見つかりませんでした。");})
+    .withFailureHandler(err=>{done();setStatus("err","✖ 検索に失敗しました。\n"+errText(err));})
+    .searchMyKae(BOOT.token,{from:v("fFrom"),to:v("fTo"),juchuno:v("fJuchu")});
+}
+
+/* ===== タブ切替 ===== */
+let historyLoaded=false;
+let historyDirty=false;
+function showTab(which){
+  const input=which==="input";
+  document.getElementById("tabInput").style.display=input?"":"none";
+  document.getElementById("tabHistory").style.display=input?"none":"";
+  document.getElementById("tabBtnInput").classList.toggle("on",input);
+  document.getElementById("tabBtnHistory").classList.toggle("on",!input);
+  if(!input&&(!historyLoaded||historyDirty)){
+    historyLoaded=true;
+    historyDirty=false;
+    loadRecent();
+  }
+}
+document.getElementById("tabBtnInput").onclick=()=>showTab("input");
+document.getElementById("tabBtnHistory").onclick=()=>showTab("history");
+
+/* ===== 初期化 ===== */
+/* 期間の既定値＝当月（1日〜今日） */
+(function(){
+  const now=new Date(),pad=n=>("0"+n).slice(-2);
+  const y=now.getFullYear(),m=pad(now.getMonth()+1);
+  document.getElementById("fFrom").value=`${y}-${m}-01`;
+  document.getElementById("fTo").value=`${y}-${m}-${pad(now.getDate())}`;
+})();
+
+document.getElementById("btnAddSheet").onclick=()=>{
+  const sheets=document.querySelectorAll(".sheet");
+  const last=sheets[sheets.length-1];
+  const carry=last?{tokui:last.querySelector(".h-tokui").value,nofuku:last.querySelector(".h-nofuku").value,
+    juchu:last.querySelector(".h-juchu").value,anken:last.querySelector(".h-anken").value}:null;
+  const s=addSheet(carry);
+  s.querySelector(".h-tokui").focus();
+  if(s.scrollIntoView) s.scrollIntoView({behavior:"smooth",block:"start"});
+};
+document.getElementById("btnSend").onclick=submitAll;
+document.getElementById("btnSearch").onclick=search;
+document.getElementById("btnRecent").onclick=loadRecent;
+["fKaeNo","fJuchu"].forEach(id=>{
+  document.getElementById(id).addEventListener("keydown",e=>{
+    if(e.key==="Enter"&&!e.isComposing){e.preventDefault();search();}
+  });
+});
+
+/* 未送信の入力があるまま再読み込み・離脱しようとしたら警告（内容の消失を防ぐ） */
+window.addEventListener("beforeunload",e=>{
+  if(readAllEntries().length){e.preventDefault();e.returnValue="";}
+});
+
+const first=addSheet(null);
+first.querySelector(".h-tokui").focus();
+
+}
+startWithToken(__startApp__);
+</script>
+</body>
+</html>

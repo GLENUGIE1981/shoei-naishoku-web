@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>作業納品書（かんたん入力）</title>
+<style>
+  /* =========================================================
+     高齢者向け・スマホ版（worker-app 本人用）v3
+     内職さん本人が自分のスマホで入力する自己入力フロー。
+       ①受注番号を入力（テンキー or 加工指示書QR）→ ②得意先名・案件名を大きく
+       表示して指示書と照合 → ③品物ごとに作業・単価・枚数 → ④送信 → 控え
+     受注番号1つ = kintoneレコード1つ（既存があれば明細に追記）。
+     色分けは紙の伝票と同じ たたみ系=アンバー / ミシン系=藍。
+     本人＝アクセスURL(トークン)で確定。名義はサーバーが本人に固定する。
+     参考試作 naishoku_mobile_prototype_v2.html のUXをベースに本番接続したもの。
+     ========================================================= */
+  :root{
+    --bg:#FBF8F3; --card:#FFFFFF; --ink:#1B222B; --sub:#5B6672; --line:#E7E1D7;
+    --tat:#E08A2B; --tat-bg:#FBEEDB; --tat-ink:#8A4B00;
+    --mis:#2F5FBF; --mis-bg:#E5ECFA; --mis-ink:#1B3D80;
+    --go:#148A54; --danger:#C0392B; --warn:#B26A00;
+    --tap:60px; --radius:16px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  /* hidden属性を確実に効かせる。.corrbar/.juchubar 等が display:flex を持つと
+     作者CSSがブラウザ既定の[hidden]{display:none}を上書きして消えなくなるため、
+     全要素に対して !important で打ち消す（JSで hidden=true にした要素は必ず隠れる）。 */
+  [hidden]{display:none!important}
+  body{
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","Meiryo",system-ui,sans-serif;
+    background:#d9d3ca; color:var(--ink); font-size:17px; line-height:1.5;
+    display:flex; justify-content:center; min-height:100vh;
+  }
+  .phone{
+    width:100%; max-width:412px; background:var(--bg); min-height:100vh;
+    position:relative; display:flex; flex-direction:column; overflow:hidden;
+    box-shadow:0 0 40px rgba(0,0,0,.18);
+  }
+  @media(min-width:460px){ .phone{ margin:22px 0; min-height:calc(100vh - 44px); border-radius:34px } }
+
+  /* ===== 上部バー ===== */
+  .top{background:var(--ink); color:#fff; padding:13px 16px; display:flex; align-items:center; gap:10px; position:sticky; top:0; z-index:5}
+  .top .who{font-weight:800; font-size:18px}
+  .top .date{margin-left:auto; font-size:13px; opacity:.85}
+  .top .chg{background:rgba(255,255,255,.14); border:0; color:#fff; font-size:13px; font-weight:700; padding:8px 11px; border-radius:10px; cursor:pointer}
+
+  /* 受注番号の常時表示バー（作業中どの受注か見失わないため） */
+  .juchubar{background:#FFF3DC; border-bottom:2px solid #EBD3A6; padding:10px 16px; display:flex; align-items:center; gap:10px}
+  .juchubar .no{font-size:15px; font-weight:800; color:var(--warn); white-space:nowrap}
+  .juchubar .anken{font-size:14px; color:#7a5a20; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .juchubar .chg{margin-left:auto; background:#fff; border:1.5px solid #DDBE84; color:var(--warn); font-size:13px; font-weight:700; padding:7px 11px; border-radius:10px; cursor:pointer; white-space:nowrap}
+
+  .screen{flex:1; padding:18px 16px 130px; overflow-y:auto}
+  .screen[hidden]{display:none}
+  h2.title{font-size:20px; margin:2px 0 4px; font-weight:800}
+  .lead{color:var(--sub); font-size:15px; margin:0 0 18px}
+
+  /* ===== 受注番号の入力 ===== */
+  .paper-hint{background:#fff; border:2px solid var(--line); border-radius:var(--radius); padding:14px 16px; font-size:15px; color:var(--sub); margin-bottom:16px}
+  .paper-hint b{color:var(--ink)}
+  .qrbtn{width:100%; background:#fff; border:2.5px solid var(--mis); color:var(--mis-ink); border-radius:var(--radius); padding:16px; font-size:19px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:14px}
+  .qrbtn:active{background:var(--mis-bg)}
+  .or{display:flex; align-items:center; gap:12px; color:var(--sub); font-size:14px; font-weight:700; margin:6px 0 14px}
+  .or::before,.or::after{content:""; flex:1; height:1px; background:var(--line)}
+  .juchu-disp{
+    background:#fff; border:3px solid var(--line); border-radius:var(--radius); padding:20px 18px;
+    text-align:center; margin-bottom:14px; cursor:pointer;
+  }
+  .juchu-disp.filled{border-color:var(--go)}
+  .juchu-disp .lbl{font-size:14px; color:var(--sub); font-weight:700; display:block; margin-bottom:6px}
+  .juchu-disp .v{font-size:42px; font-weight:800; letter-spacing:4px; font-variant-numeric:tabular-nums}
+  .juchu-disp .v.ph{color:#C9C2B6; font-size:22px; letter-spacing:0}
+  .checkbtn{width:100%; background:var(--ink); color:#fff; border:0; border-radius:14px; padding:16px; font-size:19px; font-weight:800; cursor:pointer}
+  .checkbtn:disabled{background:#B7C3BC; cursor:not-allowed}
+
+  /* 照合カード: 指示書と見比べてもらう */
+  .match{background:#fff; border:3px solid var(--go); border-radius:var(--radius); padding:18px; margin-top:18px}
+  .match .cap{font-size:14px; font-weight:800; color:var(--go); margin-bottom:12px}
+  .match dl{margin:0}
+  .match dt{font-size:13px; color:var(--sub); font-weight:700; margin-top:12px}
+  .match dt:first-child{margin-top:0}
+  .match dd{margin:3px 0 0; font-size:20px; font-weight:800; line-height:1.35}
+  .match .btns{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px}
+  .match .yes{background:var(--go); color:#fff; border:0; border-radius:13px; padding:16px 8px; font-size:17px; font-weight:800; cursor:pointer}
+  .match .no{background:#fff; color:var(--danger); border:2px solid var(--danger); border-radius:13px; padding:16px 8px; font-size:17px; font-weight:800; cursor:pointer}
+  .notfound{background:#FFF3F1; border:2px solid #F0C8C2; color:#A5342A; border-radius:var(--radius); padding:16px; margin-top:18px; font-size:15px; font-weight:700}
+
+  /* ===== 品物リスト ===== */
+  .empty{text-align:center; color:var(--sub); background:var(--card); border:2px dashed var(--line); border-radius:var(--radius); padding:34px 18px; margin-top:6px}
+  .empty .big{font-size:52px; line-height:1; margin-bottom:8px}
+  .item{background:var(--card); border:2px solid var(--line); border-radius:var(--radius); padding:14px 14px 12px; margin-bottom:14px; box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  .item-hd{display:flex; align-items:baseline; gap:8px}
+  .item-hd .name{font-size:19px; font-weight:800}
+  .item-hd .edit{margin-left:auto; background:#fff; border:1.5px solid var(--mis); color:var(--mis-ink); border-radius:10px; padding:7px 14px; font-size:14px; font-weight:700; cursor:pointer}
+  .item-hd .del{background:none; border:1.5px solid var(--danger); color:var(--danger); border-radius:10px; padding:7px 12px; font-size:14px; font-weight:700; cursor:pointer}
+  .chips{display:flex; flex-wrap:wrap; gap:7px; margin:10px 0 8px}
+  .chip{font-size:14px; font-weight:700; padding:6px 11px; border-radius:999px; border:1.5px solid}
+  .chip.tat{background:var(--tat-bg); color:var(--tat-ink); border-color:#E9C79A}
+  .chip.mis{background:var(--mis-bg); color:var(--mis-ink); border-color:#B7CBEF}
+  .item-ft{display:flex; align-items:center; justify-content:flex-end; gap:6px; font-size:15px; color:var(--sub); border-top:1px solid var(--line); padding-top:9px}
+  .item-ft b{color:var(--ink); font-size:22px; font-weight:800; font-variant-numeric:tabular-nums}
+  .addbtn{width:100%; background:#fff; border:2.5px dashed var(--go); color:var(--go); border-radius:var(--radius); padding:18px; font-size:19px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; margin-top:4px}
+  .addbtn:active{background:#EAF7F0}
+  .corrbar{background:#FFF3E8; color:#A9581F; border:2px solid #E6B98C; border-radius:var(--radius); padding:12px 14px; margin-bottom:14px}
+  .corrbar .corr-top{display:flex; align-items:center; gap:10px}
+  .corrbar .corr-ttl{flex:1; font-size:16px; font-weight:800}
+  .corrbar .corr-guide{margin-top:8px; font-size:13.5px; font-weight:600; line-height:1.65; color:#8A5A2A}
+  .corrbar .cancel{flex:0 0 auto; background:#fff; border:2px solid #C26A2B; color:#A9581F; border-radius:10px; padding:8px 12px; font-size:13px; font-weight:800; cursor:pointer}
+
+  /* ===== 下部 ===== */
+  .bottom{position:absolute; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--line); padding:12px 16px calc(12px + env(safe-area-inset-bottom)); z-index:6; box-shadow:0 -4px 16px rgba(0,0,0,.06)}
+  .bottom .row{display:flex; align-items:baseline; gap:8px; margin-bottom:10px}
+  .bottom .row .lbl{font-size:14px; color:var(--sub)}
+  .bottom .row .maisu{font-size:17px; font-weight:800; margin-left:auto}
+  .bottom .row .yen{font-size:26px; font-weight:800; font-variant-numeric:tabular-nums}
+  .bottom .row .yen small{font-size:15px; font-weight:700; color:var(--sub)}
+  .send{width:100%; background:var(--go); color:#fff; border:0; border-radius:14px; padding:17px; font-size:20px; font-weight:800; cursor:pointer; letter-spacing:1px}
+  .send:disabled{background:#B7C3BC; cursor:not-allowed}
+
+  /* ===== ボトムシート ===== */
+  .sheet-mask{position:absolute; inset:0; background:rgba(20,26,34,.42); z-index:20; display:none}
+  .sheet-mask.on{display:block}
+  .sheet{position:absolute; left:0; right:0; bottom:0; z-index:21; background:var(--bg); border-radius:22px 22px 0 0; max-height:92%; display:none; flex-direction:column; box-shadow:0 -8px 30px rgba(0,0,0,.25)}
+  .sheet.on{display:flex; animation:up .22s ease}
+  @keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  @media(prefers-reduced-motion:reduce){ .sheet.on,.pad.on{animation:none} }
+  .sheet-hd{padding:14px 18px 6px; display:flex; align-items:center}
+  .sheet-hd h3{margin:0; font-size:19px; font-weight:800}
+  .sheet-hd .close{margin-left:auto; background:none; border:0; font-size:26px; color:var(--sub); cursor:pointer; line-height:1; padding:2px 6px}
+  .sheet-body{padding:6px 18px 16px; overflow-y:auto}
+  .sheet-ft{padding:12px 18px calc(14px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); background:#fff}
+  .sheet-ft .ok{width:100%; background:var(--go); color:#fff; border:0; border-radius:14px; padding:16px; font-size:19px; font-weight:800; cursor:pointer}
+  .sheet-ft .ok:disabled{background:#B7C3BC}
+
+  .fld{margin:10px 0 16px}
+  .fld > label{display:block; font-size:15px; font-weight:800; margin-bottom:8px}
+  .fld > label .opt{font-weight:600; color:var(--sub); font-size:13px; margin-left:6px}
+  .txt{width:100%; border:2px solid var(--line); border-radius:12px; padding:14px; font-size:19px; color:var(--ink); background:#fff; font-weight:600}
+  .txt:focus{outline:none; border-color:var(--mis)}
+  .recent{display:flex; flex-wrap:wrap; gap:8px; margin-top:9px}
+  .recent button{background:#fff; border:1.5px solid var(--line); border-radius:999px; padding:8px 13px; font-size:15px; font-weight:700; color:var(--ink); cursor:pointer}
+
+  .grouplbl{display:flex; align-items:center; gap:8px; font-size:14px; font-weight:800; margin:14px 0 8px}
+  .grouplbl .dot{width:13px; height:13px; border-radius:4px}
+  .grouplbl.tat .dot{background:var(--tat)} .grouplbl.tat{color:var(--tat-ink)}
+  .grouplbl.mis .dot{background:var(--mis)} .grouplbl.mis{color:var(--mis-ink)}
+  .ops{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .op{position:relative; border:2px solid var(--line); border-radius:14px; background:#fff; padding:14px 10px; text-align:center; cursor:pointer; min-height:var(--tap)}
+  .op .nm{font-size:17px; font-weight:800; display:block}
+  .op .pr{font-size:14px; font-weight:700; color:var(--sub); margin-top:3px; min-height:18px; display:block}
+  .op.tat.on{border-color:var(--tat); background:var(--tat-bg)} .op.tat.on .pr{color:var(--tat-ink)}
+  .op.mis.on{border-color:var(--mis); background:var(--mis-bg)} .op.mis.on .pr{color:var(--mis-ink)}
+  .op .tick{position:absolute; top:6px; right:8px; font-size:15px; font-weight:900; opacity:0}
+  .op.on .tick{opacity:1}
+  .op.tat.on .tick{color:var(--tat)} .op.mis.on .tick{color:var(--mis)}
+
+  .chip.info{background:#F1EEE8; color:#5B5245; border-color:#DED7CB}
+
+  /* ===== 控え ===== */
+  .kaebtn{width:100%; background:#fff; border:2px solid var(--line); color:var(--ink); border-radius:14px; padding:15px; font-size:17px; font-weight:800; cursor:pointer; margin-top:14px}
+  .kae-row{background:#fff; border:2px solid var(--line); border-radius:var(--radius); padding:14px; margin-bottom:12px; cursor:pointer}
+  .kae-row.void{background:#F7F1F1; border-color:#E4CFCF}
+  .kae-row .no{font-size:18px; font-weight:800}
+  .kae-row .meta{font-size:14px; color:var(--sub); margin-top:4px}
+  .kae-row .amt{text-align:right; font-size:17px; font-weight:800; margin-top:6px}
+  .kbadge{display:inline-block; font-size:12px; font-weight:800; padding:2px 8px; border-radius:6px; margin-left:6px; vertical-align:2px}
+  .kbadge.v{background:#FBE3E3; color:#B3261E}
+  .kbadge.r{background:#E3EEFB; color:#1E5BB3}
+  .kae-detail{background:#fff; border:2px solid var(--line); border-radius:var(--radius); padding:18px}
+  .kae-detail h3{margin:0 0 4px; font-size:20px; text-align:center}
+  .kae-detail .kno{text-align:center; font-size:15px; color:var(--sub); margin-bottom:14px}
+  .kae-detail .voidban{background:#F7F1F1; border:2.5px solid #B3261E; color:#8A1D17; border-radius:12px; padding:11px 12px; font-size:14px; font-weight:800; text-align:center; margin-bottom:14px; line-height:1.5}
+  .kae-detail dl{margin:0 0 14px; font-size:15px}
+  .kae-detail dt{color:var(--sub); font-size:13px; font-weight:700; margin-top:9px}
+  .kae-detail dd{margin:2px 0 0; font-weight:700}
+  .kae-line{border-top:1px solid var(--line); padding:11px 0}
+  .kae-line .h{font-size:17px; font-weight:800}
+  .kae-line .w{font-size:14px; color:var(--sub); margin:3px 0}
+  .kae-line .n{text-align:right; font-size:16px; font-weight:800; font-variant-numeric:tabular-nums}
+  .kae-tot{border-top:2px solid var(--ink); margin-top:8px; padding-top:10px; display:flex; justify-content:space-between; font-size:18px; font-weight:800}
+  .kae-acts{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px}
+  .kae-acts button{border-radius:13px; padding:15px 8px; font-size:16px; font-weight:800; cursor:pointer}
+  .kae-acts .print{background:#fff; border:2px solid var(--ink); color:var(--ink)}
+  .kae-acts .redo{background:#C26A2B; border:0; color:#fff}
+  .backbtn{width:100%; background:var(--ink); color:#fff; border:0; border-radius:14px; padding:15px; font-size:17px; font-weight:800; cursor:pointer; margin-top:16px}
+
+  .grouplbl.oth .dot{background:#7A8794} .grouplbl.oth{color:#4A5765}
+  .sonota{background:#fff; border:2px solid var(--line); border-radius:14px; padding:12px}
+  .sonota .txt{border:0; border-bottom:2px solid var(--line); border-radius:0; padding:10px 4px; font-size:18px}
+  .sonota .txt:focus{border-bottom-color:#7A8794}
+  .sonota-price{display:flex; align-items:center; gap:12px; padding:12px 4px 4px; cursor:pointer}
+  .sonota-price .u{font-size:16px; color:var(--sub); font-weight:700}
+  .sonota-price .v{margin-left:auto; font-size:26px; font-weight:800; font-variant-numeric:tabular-nums}
+  .sonota-price.on .v{color:#2B3742}
+  .chip.oth{background:#EEF1F4; color:#3F4B58; border-color:#C9D1DA}
+
+  .maisu-box{display:flex; align-items:center; gap:14px; background:#fff; border:2px solid var(--line); border-radius:14px; padding:12px 16px; cursor:pointer}
+  .maisu-box .v{font-size:30px; font-weight:800; font-variant-numeric:tabular-nums; margin-left:auto}
+  .maisu-box .u{font-size:16px; color:var(--sub); font-weight:700}
+  .sub-sum{text-align:right; font-size:16px; color:var(--sub); margin-top:6px}
+  .sub-sum b{color:var(--ink); font-size:24px; font-weight:800; font-variant-numeric:tabular-nums}
+
+  /* ===== テンキー ===== */
+  .pad-mask{position:absolute; inset:0; background:rgba(20,26,34,.42); z-index:30; display:none}
+  .pad-mask.on{display:block}
+  .pad{position:absolute; left:0; right:0; bottom:0; z-index:31; background:#EEE9E0; border-radius:22px 22px 0 0; display:none; padding:10px 12px calc(14px + env(safe-area-inset-bottom)); box-shadow:0 -8px 30px rgba(0,0,0,.28)}
+  .pad.on{display:block; animation:up .18s ease}
+  .pad-top{display:flex; align-items:center; gap:10px; padding:6px 6px 12px}
+  .pad-top .plabel{font-size:15px; font-weight:800}
+  .pad-disp{margin-left:auto; min-width:130px; text-align:right; background:#fff; border:2px solid #d8d2c8; border-radius:12px; padding:8px 14px; font-size:30px; font-weight:800; font-variant-numeric:tabular-nums}
+  .pad-disp .yen{font-size:18px; color:var(--sub); margin-right:2px}
+  .keys{display:grid; grid-template-columns:repeat(3,1fr); gap:9px}
+  .key{background:#fff; border:1.5px solid #d8d2c8; border-radius:13px; padding:16px 0; font-size:26px; font-weight:800; cursor:pointer; color:var(--ink)}
+  .key:active{background:#f1ede6}
+  .key.back{color:var(--danger)}
+  .key.done{background:var(--go); color:#fff; border-color:var(--go); font-size:20px}
+
+  /* ===== 完了 ===== */
+  .toast{position:absolute; left:16px; right:16px; bottom:96px; z-index:40; background:var(--ink); color:#fff; border-radius:14px; padding:14px 16px; font-size:15px; font-weight:700; display:none; box-shadow:0 6px 20px rgba(0,0,0,.3)}
+  .toast.on{display:block}
+  .done-screen{padding:36px 22px; text-align:center}
+  .done-screen .mark{width:96px; height:96px; border-radius:50%; background:#EAF7F0; color:var(--go); font-size:52px; font-weight:900; display:flex; align-items:center; justify-content:center; margin:8px auto 18px}
+  .done-screen h2{font-size:23px; margin:0 0 6px}
+  .done-screen p{color:var(--sub); margin:4px 0 22px}
+  .done-screen .kae{background:#fff; border:2px solid var(--line); border-radius:14px; padding:16px; font-size:15px; margin-bottom:20px; text-align:left}
+  .done-screen .kae b{font-size:22px}
+  .done-screen .again{width:100%; background:var(--ink); color:#fff; border:0; border-radius:14px; padding:16px; font-size:18px; font-weight:800; cursor:pointer; margin-bottom:10px}
+  .done-screen .fin{width:100%; background:#fff; color:var(--sub); border:2px solid var(--line); border-radius:14px; padding:15px; font-size:16px; font-weight:700; cursor:pointer}
+  .note{font-size:12px; color:#8a93a0; text-align:center; padding:10px 16px 4px}
+
+  /* ===== QR読み取りモーダル（index.html と同一動作） ===== */
+  #qrModal{display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:100; align-items:center; justify-content:center; padding:16px}
+  #qrModal.open{display:flex}
+  .qr-box{background:#fff; border-radius:16px; padding:16px; max-width:440px; width:100%}
+  .qr-box h3{margin:0 0 8px; font-size:19px}
+  #qrReader{width:100%; min-height:230px; background:#111; border-radius:10px; overflow:hidden}
+  #qrReader video{width:100%!important; border-radius:10px}
+  .qr-msg{font-size:16px; color:var(--sub); margin:12px 0; line-height:1.7; min-height:3em; font-weight:600}
+  .qr-actions{display:flex; flex-direction:column; gap:10px}
+  .qr-actions .filelbl{display:flex; align-items:center; justify-content:center; background:#5a6b7b; color:#fff; font-size:18px; font-weight:800; min-height:56px; border-radius:12px; cursor:pointer}
+  .qr-actions button.close{background:#fff; border:2px solid var(--line); color:var(--sub); border-radius:12px; min-height:52px; cursor:pointer; font-size:17px; font-weight:700}
+
+  /* ===== 控え（印刷用）: index.html と同一 ===== */
+  #printArea{display:none}
+  .kae-print{font-size:13px; color:#000; padding:8mm 4mm}
+  .kae-print h2{font-size:20px; text-align:center; letter-spacing:4px; margin:0 0 10px; border-bottom:3px double #000; padding-bottom:8px}
+  .kae-print .kae-no{font-size:15px; font-weight:700}
+  .kae-print .kae-meta{display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px 16px; margin-bottom:8px}
+  .kae-print .kae-meta div{line-height:1.8}
+  .kae-print table{border-collapse:collapse; width:100%; margin:8px 0}
+  .kae-print th,.kae-print td{border:1px solid #000; padding:4px 6px; font-size:12px}
+  .kae-print th{background:#f0f0f0; font-weight:700; text-align:center}
+  .kae-print td.r{text-align:right; font-variant-numeric:tabular-nums}
+  .kae-print td.c{text-align:center}
+  .kae-print .kae-total{display:flex; justify-content:flex-end; gap:24px; font-size:15px; font-weight:700; border-top:2px solid #000; padding-top:6px}
+  .kae-print .kae-note{font-size:11px; color:#333; margin-top:10px; border-top:1px solid #999; padding-top:6px; line-height:1.7}
+  .kae-print .kae-void{border:2.5px solid #000; background:#eee; color:#000; font-weight:800; text-align:center; padding:6px; margin:0 0 10px; font-size:15px; letter-spacing:1px}
+  .kae-print .kae-redo{font-size:11px; font-weight:700; color:#000; margin-top:2px}
+  .kae-print.kae-isvoid .kae-no{text-decoration:line-through}
+  @media print{
+    body{background:#fff; display:block}
+    .phone,#qrModal{display:none!important}
+    #printArea{display:block}
+    .kae-print{page-break-after:always}
+    .kae-print:last-child{page-break-after:auto}
+  }
+</style>
+  <meta name="robots" content="noindex,nofollow">
+</head>
+<body>
+<div class="phone" id="app">
+
+  <div class="top" id="topbar">
+    <span class="who" id="whoName">—</span>
+    <button class="chg" id="btnNormal" type="button">通常表示</button>
+    <span class="date" id="today"></span>
+  </div>
+
+  <div class="juchubar" id="juchubar" hidden>
+    <span class="no">受注 <span id="barJuchu">—</span></span>
+    <span class="anken" id="barAnken"></span>
+    <button class="chg" id="btnChgJuchu" type="button">受注番号を入れなおす</button>
+  </div>
+
+  <!-- 画面1: 受注番号 -->
+  <section class="screen" id="scrJuchu">
+    <h2 class="title">受注番号を入れてください</h2>
+    <p class="lead">作業した加工指示書を見ながら入力してください。</p>
+    <button class="qrbtn" id="btnQr" type="button">📷 加工指示書のQRで読み取る</button>
+    <div class="or">または番号を手で入れる</div>
+    <div class="juchu-disp" id="juchuDisp">
+      <span class="lbl">受注番号</span>
+      <span class="v ph" id="juchuVal">タップして入力</span>
+    </div>
+    <button class="checkbtn" id="btnCheckJuchu" type="button" disabled>この番号ですすめる</button>
+    <div id="juchuResult"></div>
+    <button class="kaebtn" id="btnOpenKae" type="button">これまでの控えを見る</button>
+  </section>
+
+  <!-- 画面2: 品物入力 -->
+  <section class="screen" id="scrMain" hidden>
+    <div class="corrbar" id="corrBar" hidden>
+      <div class="corr-top">
+        <span class="corr-ttl">🔧 訂正中です（控え <span id="corrNo"></span> の直し）</span>
+        <button class="cancel" id="btnCorrCancel" type="button">訂正をやめる</button>
+      </div>
+      <div class="corr-guide">品物の内容を直すときは、その品物の〔なおす〕を押してください。いらない品物は〔けす〕で消せます。直し終えたら下の〔この内容で送信する〕を押すと、新しい控えが出て、元の控えは無効になります。</div>
+    </div>
+    <h2 class="title">やった作業を入れる</h2>
+    <p class="lead">品物ごとに「作業」と「枚数」を入れてください。</p>
+    <div id="itemList"></div>
+    <button class="addbtn" id="btnAdd" type="button">＋ 品物をついか</button>
+  </section>
+
+  <!-- 画面3: 完了 -->
+  <section class="screen done-screen" id="scrDone" hidden>
+    <div class="mark">✓</div>
+    <h2>送信しました</h2>
+    <p>お疲れさまでした。</p>
+    <div class="kae" id="doneBox"></div>
+    <button class="again" id="btnAgain" type="button">べつの受注番号を入れる</button>
+    <button class="fin" id="btnOpenKae2" type="button" style="margin-bottom:10px">この控えを見る・印刷する</button>
+    <button class="fin" id="btnFinish" type="button">おわる</button>
+  </section>
+
+  <!-- 画面4: 控え一覧／詳細 -->
+  <section class="screen" id="scrKae" hidden>
+    <h2 class="title">これまでの控え</h2>
+    <p class="lead" id="kaeLead">じぶんが送ったぶんが新しい順にならびます。</p>
+    <div id="kaeBody"></div>
+    <button class="backbtn" id="btnKaeBack" type="button">もどる</button>
+  </section>
+
+  <div class="bottom" id="bottomBar" hidden>
+    <div class="row">
+      <span class="lbl">この受注ぶん</span>
+      <span class="maisu"><span id="totMaisu">0</span> 枚</span>
+      <span class="yen"><small>¥</small><span id="totYen">0</span></span>
+    </div>
+    <button class="send" id="btnSend" type="button" disabled>この内容で送信する</button>
+  </div>
+
+  <!-- ボトムシート -->
+  <div class="sheet-mask" id="sheetMask"></div>
+  <div class="sheet" id="sheet">
+    <div class="sheet-hd"><h3 id="sheetTitle">品物をついか</h3><button class="close" id="sheetClose" type="button">×</button></div>
+    <div class="sheet-body">
+      <div class="fld">
+        <label>品物のなまえ<span class="opt">（商品分類）</span></label>
+        <input class="txt" id="inpBunrui" placeholder="れい：Tシャツ" autocomplete="off">
+        <div class="recent" id="recentBunrui"></div>
+      </div>
+
+      <div class="fld">
+        <label>サイズ<span class="opt">（なくてもOK）</span></label>
+        <input class="txt" id="inpSize" placeholder="れい：M／S-XL" autocomplete="off">
+        <div class="recent" id="recentSize"></div>
+      </div>
+
+      <div class="fld">
+        <label>カラー<span class="opt">（なくてもOK）</span></label>
+        <input class="txt" id="inpColor" placeholder="れい：ブラック" autocomplete="off">
+        <div class="recent" id="recentColor"></div>
+      </div>
+      <div class="fld" style="margin-bottom:6px">
+        <label>やった作業をえらぶ<span class="opt">（タップして単価を入力）</span></label>
+        <div class="grouplbl tat"><span class="dot"></span>たたみ系</div>
+        <div class="ops" id="opsTat"></div>
+        <div class="grouplbl mis"><span class="dot"></span>ミシン系</div>
+        <div class="ops" id="opsMis"></div>
+
+        <div class="grouplbl oth"><span class="dot"></span>そのほかの作業</div>
+        <div class="sonota">
+          <input class="txt" id="inpSonotaN" placeholder="作業の内容（れい：テープどめ）" autocomplete="off">
+          <div class="sonota-price" id="sonotaPriceBox">
+            <span class="u">単価</span>
+            <span class="v">¥<span id="sonotaVal">0</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="fld">
+        <label>枚数</label>
+        <div class="maisu-box" id="maisuBox">
+          <span class="u">枚数</span>
+          <span class="v"><span id="maisuVal">0</span> <span class="u">枚</span></span>
+        </div>
+        <div class="sub-sum">この品物の小計　<b>¥<span id="itemSum">0</span></b></div>
+      </div>
+    </div>
+    <div class="sheet-ft"><button class="ok" id="sheetOk" type="button" disabled>この品物をついか</button></div>
+  </div>
+
+  <!-- テンキー -->
+  <div class="pad-mask" id="padMask"></div>
+  <div class="pad" id="pad">
+    <div class="pad-top">
+      <span class="plabel" id="padLabel">単価</span>
+      <span class="pad-disp"><span class="yen" id="padYen">¥</span><span id="padDisp">0</span></span>
+    </div>
+    <div class="keys">
+      <button class="key" data-k="1">1</button><button class="key" data-k="2">2</button><button class="key" data-k="3">3</button>
+      <button class="key" data-k="4">4</button><button class="key" data-k="5">5</button><button class="key" data-k="6">6</button>
+      <button class="key" data-k="7">7</button><button class="key" data-k="8">8</button><button class="key" data-k="9">9</button>
+      <button class="key back" data-k="back">⌫</button><button class="key" data-k="0">0</button><button class="key done" data-k="done">OK</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<!-- QR読み取りモーダル（全画面。.phone の外に置く） -->
+<div id="qrModal">
+  <div class="qr-box">
+    <h3>加工指示書のQRコードを読み取り</h3>
+    <div id="qrReader"></div>
+    <div class="qr-msg" id="qrMsg">カメラの使用を確認する画面が出たら「許可」を押してください。<br>加工指示書のQRコードを枠内にかざしてください。</div>
+    <div class="qr-actions">
+      <label class="filelbl">📷 写真から読み取る<input type="file" accept="image/*" capture="environment" id="qrFile" hidden></label>
+      <button class="close" id="qrClose" type="button">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div id="printArea"></div>
+
+<script src="gas-api.js"></script>
+<script>
+/* トークン検証が終わるまで実行しない。中身は GAS版から無変更。 */
+function __startApp__(){
+
+/* doGet がトークン検証後にサーバーで解決した本人情報を埋め込む（クライアントからコード指定はしない） */
+const BOOT = window.__BOOT__;
+
+
+/* =======================================================================
+   フィールドコード（稼働中アプリ85・revision89と一致。index.html と同一）
+   ======================================================================= */
+const TATAMI_OPS=[["OPP入","tanka_opp_tatami"],["シール貼","tanka_seal_tatami"],["下札付","tanka_sagefuda_tatami"],["投込","tanka_nagekomi_tatami"],["十字梱包","tanka_juji_tatami"]];
+const MISIN_OPS=[["一辺","tanka_ippen_misin"],["二辺","tanka_nihen_misin"],["四方","tanka_shihou_misin"],["カット","tanka_cut_misin"],["サイズ付","tanka_sizetsuke_misin"],["洗濯","tanka_sentaku_misin"],["ピス","tanka_pis_misin"],["アイロン","tanka_iron_misin"]];
+const SUB={
+  tatami:{table:"sagyou_meisai_tatami",date:"meisai_denpyo_date_tatami",seik:"meisai_seikyusha_tatami",bunrui:"shouhin_bunrui_tatami",size:"size_tatami",color:"color_tatami",maisu:"maisu_tatami",sonota:"tanka_sonota_tatami",sonotaN:"sonota_naiyou_tatami",ops:TATAMI_OPS},
+  misin:{table:"sagyou_meisai_misin",date:"meisai_denpyo_date_misin",seik:"meisai_seikyusha_misin",bunrui:"shouhin_bunrui_misin",size:"size_misin",color:"color_misin",maisu:"maisu_misin",sonota:"tanka_sonota_misin",sonotaN:"sonota_naiyou_misin",ops:MISIN_OPS},
+};
+/* フィールドコード → [ラベル, "tat"|"mis"]。控えの復元（訂正）で使う */
+const OP_META={};
+TATAMI_OPS.forEach(o=>OP_META[o[1]]={label:o[0],type:"tat"});
+MISIN_OPS.forEach(o=>OP_META[o[1]]={label:o[0],type:"mis"});
+
+/* 品物のなまえ候補（よく使うものを足せる。自由入力も可） */
+const RECENT_BUNRUI=["Tシャツ","ロンT","パーカー","トート"];
+const SIZE_MASTER=["S","M","L","LL","F","S-XL"];
+
+const state={ name:BOOT.name, code:BOOT.code, juchu:null, order:null, items:[],
+  origKae:"", rateMemory:{}, recentSizes:SIZE_MASTER.slice(), recentColors:[] };
+const $=id=>document.getElementById(id);
+const yen=n=>Number(n||0).toLocaleString("ja-JP");
+function escapeHtml(t){return String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function errText(err){return err&&err.message?err.message:String(err);}
+function todayStr(){const d=new Date();return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;}
+function todayISO(){const d=new Date();const p=n=>("0"+n).slice(-2);return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;}
+
+function showScreen(which){
+  ["scrJuchu","scrMain","scrDone","scrKae"].forEach(s=>$(s).hidden=(s!==which));
+  $("juchubar").hidden = !(which==="scrMain" && state.juchu);
+  $("bottomBar").hidden = (which!=="scrMain");
+  // 訂正バーは「品物画面で、かつ出し直し中(origKae有り)」のときだけ。
+  // どの画面遷移でも必ず判定するので、renderItems を通らない経路でも残らない。
+  $("corrBar").hidden = !(which==="scrMain" && state.origKae);
+  if(state.origKae) $("corrNo").textContent=state.origKae;
+}
+
+/* ===== トップ窓を絶対URLで移動する（GASはサンドボックスiframe内で動くため、
+   相対URLの location.href では内側フレームが壊れたURLに飛んで真っ白になる。
+   target="_top" のリンクをクリックしてトップ窓ごと移動させるのが確実） ===== */
+function navTop(url){
+  const a=document.createElement("a");
+  a.href=url; a.target="_top"; a.rel="noopener";
+  document.body.appendChild(a); a.click();
+}
+/* 通常（タブレット）表示へ切替 */
+$("btnNormal").onclick=()=>{
+  navTop("index.html?t="+encodeURIComponent(BOOT.token));
+};
+
+/* ===== 1. 受注番号 ===== */
+function goJuchu(){
+  state.juchu=null; state.order=null; state.items=[]; state.origKae="";
+  juchuInput="";
+  $("juchuVal").textContent="タップして入力"; $("juchuVal").className="v ph";
+  $("juchuDisp").classList.remove("filled");
+  $("btnCheckJuchu").disabled=true;
+  $("juchuResult").innerHTML="";
+  showScreen("scrJuchu");
+}
+let juchuInput="";
+$("juchuDisp").onclick=()=>{
+  openPad("受注番号","num",parseInt(juchuInput,10)||0,val=>{
+    juchuInput = val>0 ? String(val) : "";
+    const el=$("juchuVal");
+    if(juchuInput){ el.textContent=juchuInput; el.className="v"; $("juchuDisp").classList.add("filled"); }
+    else { el.textContent="タップして入力"; el.className="v ph"; $("juchuDisp").classList.remove("filled"); }
+    $("btnCheckJuchu").disabled = !juchuInput;
+    $("juchuResult").innerHTML="";
+  });
+};
+$("btnCheckJuchu").onclick=()=>{
+  const no=juchuInput;
+  $("juchuResult").innerHTML=`<div class="paper-hint" style="margin-top:18px">しらべています…</div>`;
+  google.script.run
+    .withSuccessHandler(info=>showOrder(info,no))
+    .withFailureHandler(err=>{ $("juchuResult").innerHTML=`<div class="notfound">✖ 受注情報の取得に失敗しました。<br>${escapeHtml(errText(err))}</div>`; })
+    .getOrderInfo(BOOT.token,no);
+};
+/* 照合カード（指示書と見くらべ）。info は getOrderInfo / getOrderInfoByApp38Record が返す形 */
+function showOrder(info,noOverride){
+  const box=$("juchuResult");
+  if(!info||!info.found){
+    /* kintone側の異常を「番号違い」と同じ文言にすると、打ち直しを誘発してさらに
+       リクエストを消費するため、原因を分けて出す。 */
+    if(info&&info.error){
+      box.innerHTML=`<div class="notfound">${escapeHtml(info.message)}</div>`;
+      return;
+    }
+    box.innerHTML=`<div class="notfound">この番号は見つかりませんでした。<br>加工指示書の番号をもう一度たしかめてください。</div>`;
+    return;
+  }
+  if(noOverride){ juchuInput=String(noOverride); }
+  else if(info.juchuno){ juchuInput=String(info.juchuno); }
+  state.order=info;
+  box.innerHTML=`
+    <div class="match">
+      <div class="cap">✓ 加工指示書と見くらべてください</div>
+      <dl>
+        <dt>得意先</dt><dd>${escapeHtml(info.tokui)}</dd>
+        <dt>案件名</dt><dd>${escapeHtml(info.anken)}</dd>
+        ${info.tanto?`<dt>納品先</dt><dd>${escapeHtml(info.tanto)}</dd>`:""}
+        ${info.shukkaDate?`<dt>出荷日</dt><dd>${escapeHtml(info.shukkaDate)}</dd>`:""}
+      </dl>
+      <div class="btns">
+        <button class="no" type="button" id="mNo">ちがう</button>
+        <button class="yes" type="button" id="mYes">合っている</button>
+      </div>
+    </div>`;
+  $("mYes").onclick=()=>{
+    state.juchu=juchuInput;
+    $("barJuchu").textContent=state.juchu;
+    $("barAnken").textContent=info.anken||info.tokui||"";
+    showScreen("scrMain"); renderItems();
+  };
+  $("mNo").onclick=()=>{ box.innerHTML=""; juchuInput=""; $("juchuDisp").click(); };
+}
+$("btnChgJuchu").onclick=()=>{
+  if(state.items.length && !confirm("入力中の品物は消えます。受注番号を入れなおしますか？"))return;
+  goJuchu();
+};
+
+/* ===== 2. 品物 ===== */
+function renderItems(){
+  // 訂正バーの表示は showScreen() が一元管理する（ここでは扱わない）
+  const box=$("itemList"); box.innerHTML="";
+  if(state.items.length===0){
+    box.innerHTML=`<div class="empty"><div class="big">🧺</div>まだ入っていません。<br>下の「品物をついか」からはじめてください。</div>`;
+  }else{
+    state.items.forEach((it,idx)=>{
+      let chips="";
+      if(it.size) chips+=`<span class="chip info">${escapeHtml(it.size)}</span>`;
+      if(it.color) chips+=`<span class="chip info">${escapeHtml(it.color)}</span>`;
+      chips+=it.ops.map(o=>`<span class="chip ${o.type}">${escapeHtml(o.label)} ¥${yen(o.price)}</span>`).join("");
+      if(it.sonotaP>0) chips+=`<span class="chip oth">${escapeHtml(it.sonotaN||"その他")} ¥${yen(it.sonotaP)}</span>`;
+      const el=document.createElement("div");
+      el.className="item";
+      el.innerHTML=`<div class="item-hd"><span class="name">${escapeHtml(it.bunrui||"（名前なし）")}</span>`+
+        `<button class="edit" type="button">なおす</button><button class="del" type="button">けす</button></div>
+        <div class="chips">${chips}</div>
+        <div class="item-ft">${it.maisu}枚 × ¥${yen(it.tanka)}　=　<b>¥${yen(it.tanka*it.maisu)}</b></div>`;
+      el.querySelector(".edit").onclick=()=>openSheet(idx);
+      el.querySelector(".del").onclick=()=>{ if(confirm("この品物を消しますか？")){ state.items.splice(idx,1); renderItems(); } };
+      box.appendChild(el);
+    });
+  }
+  recalc();
+}
+function recalc(){
+  let m=0,k=0; state.items.forEach(it=>{m+=it.maisu;k+=it.tanka*it.maisu;});
+  $("totMaisu").textContent=m; $("totYen").textContent=yen(k);
+  $("btnSend").disabled = state.items.length===0;
+}
+$("btnCorrCancel").onclick=()=>{
+  if(!confirm(`控え ${state.origKae} の出し直しをやめますか？（入力中の品物は消えます）`))return;
+  goJuchu();
+};
+
+let draft=null;
+let editIdx=-1; // ≥0 なら既存の品物を「なおす」編集中。-1 は新規追加。
+function openSheet(idx){
+  editIdx = (typeof idx==="number") ? idx : -1;
+  if(editIdx>=0){
+    // 既存の品物を編集: 値をシートへ復元する
+    const it=state.items[editIdx];
+    draft={bunrui:it.bunrui,size:it.size,color:it.color,ops:{},maisu:it.maisu,sonotaN:it.sonotaN,sonotaP:it.sonotaP};
+    it.ops.forEach(o=>{ draft.ops[o.code]={label:o.label,type:o.type,price:o.price}; });
+  }else{
+    draft={bunrui:"",size:"",color:"",ops:{},maisu:0,sonotaN:"",sonotaP:0};
+  }
+  $("sheetTitle").textContent = editIdx>=0 ? "品物をなおす" : "品物をついか";
+  $("sheetOk").textContent = editIdx>=0 ? "この内容で直す" : "この品物をついか";
+  $("inpBunrui").value=draft.bunrui;
+  $("inpSize").value=draft.size; $("inpColor").value=draft.color;
+  $("maisuVal").textContent=draft.maisu||0;
+  $("inpSonotaN").value=draft.sonotaN; $("sonotaVal").textContent=yen(draft.sonotaP);
+  $("sonotaPriceBox").classList.toggle("on", (draft.sonotaP||0)>0);
+  buildOps(); renderRecent(); renderRecentSize(); renderRecentColor(); syncDraft();
+  $("sheetMask").classList.add("on"); $("sheet").classList.add("on");
+}
+function closeSheet(){ $("sheetMask").classList.remove("on"); $("sheet").classList.remove("on"); editIdx=-1; }
+function buildOps(){
+  const mk=(list,type,host)=>{
+    host.innerHTML="";
+    list.forEach(([label,code])=>{
+      const b=document.createElement("button");
+      b.className=`op ${type}`; b.type="button";
+      b.innerHTML=`<span class="tick">✓</span><span class="nm">${label}</span><span class="pr" data-pr></span>`;
+      // 編集で復元した単価は選択済み・金額表示にする
+      if(draft.ops[code]){ b.classList.add("on"); b.querySelector("[data-pr]").textContent="¥"+yen(draft.ops[code].price); }
+      b.onclick=()=>toggleOp(b,label,code,type);
+      host.appendChild(b);
+    });
+  };
+  mk(TATAMI_OPS,"tat",$("opsTat")); mk(MISIN_OPS,"mis",$("opsMis"));
+}
+function toggleOp(btn,label,code,type){
+  if(draft.ops[code]){
+    delete draft.ops[code]; btn.classList.remove("on"); btn.querySelector("[data-pr]").textContent="";
+    syncDraft(); return;
+  }
+  openPad("単価（"+label+"）","yen",state.rateMemory[code]||0,val=>{
+    if(val>0){
+      draft.ops[code]={label,type,price:val};
+      state.rateMemory[code]=val;
+      btn.classList.add("on"); btn.querySelector("[data-pr]").textContent="¥"+yen(val);
+    }
+    syncDraft();
+  });
+}
+function renderRecent(){
+  const host=$("recentBunrui"); host.innerHTML="";
+  RECENT_BUNRUI.forEach(name=>{
+    const b=document.createElement("button"); b.type="button"; b.textContent=name;
+    b.onclick=()=>{ $("inpBunrui").value=name; draft.bunrui=name; syncDraft(); };
+    host.appendChild(b);
+  });
+}
+function renderRecentSize(){
+  const host=$("recentSize"); host.innerHTML="";
+  state.recentSizes.forEach(sz=>{
+    const b=document.createElement("button"); b.type="button"; b.textContent=sz;
+    b.onclick=()=>{ $("inpSize").value=sz; draft.size=sz; };
+    host.appendChild(b);
+  });
+}
+function renderRecentColor(){
+  const host=$("recentColor"); host.innerHTML="";
+  state.recentColors.forEach(c=>{
+    const b=document.createElement("button"); b.type="button"; b.textContent=c;
+    b.onclick=()=>{ $("inpColor").value=c; draft.color=c; };
+    host.appendChild(b);
+  });
+}
+$("inpBunrui").addEventListener("input",e=>{ draft.bunrui=e.target.value; syncDraft(); });
+$("inpSize").addEventListener("input",e=>{ draft.size=e.target.value; });
+$("inpColor").addEventListener("input",e=>{ draft.color=e.target.value; });
+$("inpSonotaN").addEventListener("input",e=>{ draft.sonotaN=e.target.value; syncDraft(); });
+$("sonotaPriceBox").onclick=()=>openPad("その他の単価","yen",draft.sonotaP,val=>{
+  draft.sonotaP=val; $("sonotaVal").textContent=yen(val);
+  $("sonotaPriceBox").classList.toggle("on",val>0);
+  syncDraft();
+});
+$("maisuBox").onclick=()=>openPad("枚数","mai",draft.maisu,val=>{ draft.maisu=val; $("maisuVal").textContent=val; syncDraft(); });
+function draftTanka(){ return Object.values(draft.ops).reduce((s,o)=>s+o.price,0) + (draft.sonotaP||0); }
+function syncDraft(){
+  $("itemSum").textContent=yen(draftTanka()*draft.maisu);
+  const hasWork = Object.keys(draft.ops).length>0 || draft.sonotaP>0;
+  $("sheetOk").disabled = !(hasWork && draft.maisu>0);
+}
+$("sheetOk").onclick=()=>{
+  const ops=Object.entries(draft.ops).map(([code,o])=>({code,label:o.label,type:o.type,price:o.price}));
+  const size=draft.size.trim(), color=draft.color.trim();
+  const item={
+    bunrui:draft.bunrui.trim(), size, color, ops, tanka:draftTanka(), maisu:draft.maisu,
+    sonotaN:draft.sonotaN.trim(), sonotaP:draft.sonotaP||0,
+  };
+  if(editIdx>=0) state.items[editIdx]=item; // 「なおす」はその場で置き換え（追加しない）
+  else state.items.push(item);
+  if(size){ state.recentSizes=[size].concat(state.recentSizes.filter(s=>s!==size)).slice(0,6); }
+  if(color){ state.recentColors=[color].concat(state.recentColors.filter(c=>c!==color)).slice(0,6); }
+  closeSheet(); renderItems();
+};
+$("btnAdd").onclick=()=>openSheet();
+$("sheetClose").onclick=closeSheet;
+$("sheetMask").onclick=closeSheet;
+
+/* ===== テンキー ===== */
+let padValue="0", padOnDone=null, padFresh=true;
+function openPad(label,unit,initial,cb){
+  padValue = initial>0 ? String(initial) : "0";
+  padFresh = true; // 既存値を表示した状態。最初に数字を押したら置き換える（追記でなく上書き）
+  padOnDone=cb;
+  $("padLabel").textContent=label;
+  $("padYen").style.display = unit==="yen" ? "" : "none";
+  drawPad();
+  $("padMask").classList.add("on"); $("pad").classList.add("on");
+}
+function closePad(){ $("padMask").classList.remove("on"); $("pad").classList.remove("on"); padOnDone=null; }
+function drawPad(){ $("padDisp").textContent = yen(parseInt(padValue,10)||0); }
+document.querySelectorAll("#pad .key").forEach(k=>{
+  k.onclick=()=>{
+    const v=k.dataset.k;
+    if(v==="done"){ const n=parseInt(padValue,10)||0; const cb=padOnDone; closePad(); if(cb)cb(n); return; }
+    if(v==="back"){ padFresh=false; padValue=padValue.length>1?padValue.slice(0,-1):"0"; }
+    else {
+      if(padFresh){ padValue=""; padFresh=false; } // 開いた直後の最初の数字は既存値を置き換える
+      if(padValue==="0")padValue="";
+      if(padValue.length<7)padValue+=v;
+    }
+    drawPad();
+  };
+});
+$("padMask").onclick=closePad;
+
+/* =======================================================================
+   送信ペイロード（本番 index.html buildKintoneRecords / buildKaeDetail と同形）
+   受注番号があるので juchuno のみ送る。得意先名・案件名はkintoneの
+   ルックアップ自動コピーに任せる。請求者はサーバーが本人に固定する。
+   ======================================================================= */
+/* 1品物を、たたみ系／ミシン系のサブテーブル行に振り分ける。
+   両方使った品物は2行に分割。「その他」は片方にだけ入れる（二重計上を防ぐ）:
+   ミシン系だけならミシン系へ、それ以外（たたみ系のみ／両方／作業なし）はたたみ系へ。
+   ＝index.html classifyLine の既定（混在時その他はたたみ）と一致。 */
+function classify(item){
+  const hasT=item.ops.some(o=>o.type==="tat");
+  const hasM=item.ops.some(o=>o.type==="mis");
+  const hasSonota=(item.sonotaP||0)>0;
+  const sonotaSide = (hasM && !hasT) ? "misin" : "tatami";
+  const out=[];
+  const mk=key=>{
+    const d=SUB[key]; const f={};
+    f[d.date]={value:todayISO()};
+    f[d.seik]={value:state.name};
+    f[d.bunrui]={value:item.bunrui};
+    if(item.size) f[d.size]={value:item.size};
+    if(item.color) f[d.color]={value:item.color};
+    f[d.maisu]={value:item.maisu};
+    item.ops.forEach(o=>{ const isT=o.type==="tat"; if((key==="tatami")===isT) f[o.code]={value:o.price}; });
+    if(hasSonota && sonotaSide===key){
+      f[d.sonota]={value:item.sonotaP};
+      if(item.sonotaN) f[d.sonotaN]={value:item.sonotaN};
+    }
+    return {table:d.table,fields:f};
+  };
+  if(hasT) out.push(mk("tatami"));
+  if(hasM) out.push(mk("misin"));
+  if(!hasT && !hasM && hasSonota) out.push(mk(sonotaSide));
+  return out;
+}
+/* 控え明細の1行。raw は〔訂正して出し直す〕でフォームを正確に復元するための機械可読データ
+   （控えの表示には出さない）。index.html buildKaeDetail の raw と同形式。 */
+function lineForKae(it){
+  const used=it.ops.map(op=>`${op.label} ${op.price}円`)
+    .concat(it.sonotaP>0?[`${it.sonotaN||"その他"} ${it.sonotaP}円`]:[]).join("、");
+  const prices={};
+  it.ops.forEach(op=>{ prices[op.code]=String(op.price); });
+  const sonotaSide = (it.ops.some(o=>o.type==="mis") && !it.ops.some(o=>o.type==="tat")) ? "misin" : "tatami";
+  return {
+    bunrui:it.bunrui, size:it.size||"", color:it.color||"", used:used,
+    tanka:it.tanka, maisu:it.maisu, shoukei:it.tanka*it.maisu,
+    raw:{ bunrui:it.bunrui, size:it.size||"", color:it.color||"", maisu:String(it.maisu),
+      prices:prices, sonota:it.sonotaP>0?String(it.sonotaP):"", sonotaN:it.sonotaN||"", sonotaSide:sonotaSide },
+  };
+}
+function buildItems(){
+  const record={ juchuno:{value:state.juchu} };
+  const rows={};
+  rows[SUB.tatami.table]=[]; rows[SUB.misin.table]=[];
+  state.items.forEach(it=>classify(it).forEach(r=>rows[r.table].push({value:r.fields})));
+  if(rows[SUB.tatami.table].length) record[SUB.tatami.table]={value:rows[SUB.tatami.table]};
+  if(rows[SUB.misin.table].length) record[SUB.misin.table]={value:rows[SUB.misin.table]};
+
+  let maisu=0,kingaku=0; state.items.forEach(it=>{maisu+=it.maisu;kingaku+=it.tanka*it.maisu;});
+  const o=state.order||{};
+  const kaeDetail={
+    seik:state.name, code:state.code, date:todayISO(),
+    tokui:o.tokui||"", anken:o.anken||"", juchu:state.juchu,
+    maisu, kingaku, lines:state.items.map(lineForKae),
+  };
+  const meta={ seik:state.name, code:state.code, date:todayISO(), maisu, kingaku,
+    tokui:o.tokui||"", anken:o.anken||"", juchu:state.juchu, kaeDetail,
+    origKaeNo:state.origKae||"" };
+  return [{record, meta}];
+}
+
+$("btnSend").onclick=()=>{
+  const extra = state.origKae ? `\n（控え ${state.origKae} の出し直しです。新しい控え番号で発行されます）` : "";
+  if(!confirm(`受注番号 ${state.juchu} に ${state.items.length}件の品物を送信します。よろしいですか？${extra}`))return;
+  const items=buildItems();
+  toast("送信中です。そのままお待ちください…"); $("btnSend").disabled=true;
+  google.script.run
+    .withSuccessHandler(onSent)
+    .withFailureHandler(err=>{ hideToast(); $("btnSend").disabled=false;
+      alert("送信できませんでした。もう一度お試しください。\n"+errText(err)); })
+    .submitMyRecords(BOOT.token,items);
+};
+function onSent(results){
+  hideToast();
+  const r=(results&&results[0])||{};
+  if(!r.ok){ alert("送信できませんでした。もう一度お試しください。\n"+(r.error||"")); $("btnSend").disabled=false; return; }
+  let m=0,k2=0; state.items.forEach(it=>{m+=it.maisu;k2+=it.tanka*it.maisu;});
+  const o=state.order||{};
+  const note=r.kaeError?`<br><span style="color:var(--danger)">※控え番号の発行で問題がありました（${escapeHtml(r.kaeError)}）</span>`:"";
+  $("doneBox").innerHTML=`控え番号　<b>${escapeHtml(r.kaeNo||"（発行なし）")}</b><br>
+    <span style="color:var(--sub)">受注 ${escapeHtml(state.juchu)}　${escapeHtml(o.anken||"")}<br>
+    ${escapeHtml(state.name)}　${todayStr()}<br>合計 ${m}枚 / ¥${yen(k2)}</span>${note}`;
+  // 送信済みの入力は片付ける（出し直しも完了）。これで「控え→もどる」で送信済みの
+  // 品物画面に戻って二重送信…という事故も防ぐ。次は完了画面のボタンから進む。
+  state.items=[]; state.juchu=null; state.order=null; state.origKae="";
+  historyDirty=true;
+  showScreen("scrDone");
+}
+$("btnAgain").onclick=()=>{ goJuchu(); };
+$("btnFinish").onclick=()=>{ goJuchu(); };
+
+/* =======================================================================
+   加工指示書QRによる受注情報の自動入力（index.html と同一動作）
+   QRの中身はアプリ38レコード詳細URL。開かずにレコード番号だけ抽出し、
+   サーバー経由（有効トークン必須）でAPI参照する。
+   ======================================================================= */
+function parseApp38Url(text){
+  const m=String(text||"").match(/\/k\/(?:guest\/\d+\/)?38\/show[^\s]*?[#?&]record=(\d+)/);
+  return m?m[1]:null;
+}
+let qrLibPromise=null;
+function loadQrLib(){
+  if(qrLibPromise)return qrLibPromise;
+  qrLibPromise=new Promise((resolve,reject)=>{
+    const s=document.createElement("script");
+    s.src="vendor/jsqr.js";
+    s.onload=resolve;
+    s.onerror=()=>{qrLibPromise=null;reject(new Error("読み取り用プログラムを読み込めませんでした。通信状態をご確認ください。"));};
+    document.head.appendChild(s);
+  });
+  return qrLibPromise;
+}
+let qrHandled=false, qrStream=null, qrTimer=null, qrVideo=null;
+function qrMsg(t){$("qrMsg").textContent=t;}
+$("btnQr").onclick=()=>{
+  qrHandled=false;
+  $("qrModal").classList.add("open");
+  qrMsg("カメラの使用を確認する画面が出たら「許可」を押してください。加工指示書のQRコードを映してください。");
+  loadQrLib().then(startCamera).catch(e=>qrMsg("✖ "+e.message+" 「写真から読み取る」もお試しください。"));
+};
+function startCamera(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){cameraFail_();return;}
+  navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:{ideal:1280},height:{ideal:720}},audio:false})
+    .then(stream=>{
+      qrStream=stream;
+      const reader=$("qrReader"); reader.innerHTML="";
+      qrVideo=document.createElement("video");
+      qrVideo.setAttribute("playsinline",""); qrVideo.muted=true; qrVideo.srcObject=stream;
+      reader.appendChild(qrVideo); qrVideo.play().catch(()=>{});
+      qrMsg("加工指示書のQRコードを画面に映してください。読み取れたら自動で入ります。");
+      const canvas=document.createElement("canvas");
+      const ctx=canvas.getContext("2d",{willReadFrequently:true});
+      qrTimer=setInterval(()=>{
+        if(qrHandled||!qrVideo||qrVideo.readyState<2)return;
+        const vw=qrVideo.videoWidth,vh=qrVideo.videoHeight; if(!vw)return;
+        const sc=Math.min(1,900/Math.max(vw,vh));
+        canvas.width=Math.round(vw*sc);canvas.height=Math.round(vh*sc);
+        ctx.drawImage(qrVideo,0,0,canvas.width,canvas.height);
+        const d=ctx.getImageData(0,0,canvas.width,canvas.height);
+        const r=jsQR(d.data,canvas.width,canvas.height,{inversionAttempts:"dontInvert"});
+        if(r&&r.data)onQrText(r.data);
+      },300);
+    })
+    .catch(()=>cameraFail_());
+}
+function cameraFail_(){
+  qrMsg("この端末ではカメラを直接使えないようです。下の「写真から読み取る」を押してQRの写真を撮ってください。指示書全体が写る距離で大丈夫です（QRが小さくても読み取れます）。");
+}
+function stopCamera(){
+  if(qrTimer){clearInterval(qrTimer);qrTimer=null;}
+  if(qrStream){qrStream.getTracks().forEach(t=>t.stop());qrStream=null;}
+  if(qrVideo){qrVideo.srcObject=null;qrVideo.remove();qrVideo=null;}
+}
+function closeQrModal(){ stopCamera(); $("qrModal").classList.remove("open"); }
+function onQrText(text){
+  if(qrHandled)return;
+  const rid=parseApp38Url(text);
+  if(!rid){ qrMsg("これは加工指示書のQRではないようです。加工指示書に印刷されているQRコードを読み取ってください。"); return; }
+  qrHandled=true; closeQrModal();
+  $("juchuResult").innerHTML=`<div class="paper-hint" style="margin-top:18px">加工指示書の情報を取得中…</div>`;
+  google.script.run
+    .withSuccessHandler(info=>{
+      if(info&&info.found){ showOrder(info, info.juchuno); }
+      else if(info&&info.error){ $("juchuResult").innerHTML=`<div class="notfound">${escapeHtml(info.message)}</div>`; }
+      else $("juchuResult").innerHTML=`<div class="notfound">加工指示書の情報が見つかりませんでした。<br>受注番号の手入力もお試しください。</div>`;
+    })
+    .withFailureHandler(err=>{ $("juchuResult").innerHTML=`<div class="notfound">✖ 取得に失敗しました。<br>${escapeHtml(errText(err))}</div>`; })
+    .getOrderInfoByApp38Record(BOOT.token,rid);
+}
+function jsQRRegion_(canvas,sx,sy,sw,sh){
+  const d=canvas.getContext("2d").getImageData(sx,sy,sw,sh);
+  const r=jsQR(d.data,sw,sh,{inversionAttempts:"attemptBoth"});
+  return r&&r.data?r.data:null;
+}
+function decodeBitmap_(img,iw,ih){
+  const mk=(maxDim)=>{
+    const sc=Math.min(1,maxDim/Math.max(iw,ih));
+    const c=document.createElement("canvas");
+    c.width=Math.max(1,Math.round(iw*sc)); c.height=Math.max(1,Math.round(ih*sc));
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    return c;
+  };
+  for(const dim of [1000,1800]){ const c=mk(dim); const t=jsQRRegion_(c,0,0,c.width,c.height); if(t)return t; }
+  const big=mk(2600);
+  for(const n of [2,3]){
+    const tw=Math.ceil(big.width/n),th=Math.ceil(big.height/n);
+    const ox=Math.round(tw*0.2),oy=Math.round(th*0.2);
+    for(let y=0;y<n;y++){ for(let x=0;x<n;x++){
+      const sx=Math.max(0,x*tw-ox),sy=Math.max(0,y*th-oy);
+      const sw=Math.min(big.width-sx,tw+ox*2),sh=Math.min(big.height-sy,th+oy*2);
+      const t=jsQRRegion_(big,sx,sy,sw,sh); if(t)return t;
+    }}
+  }
+  return null;
+}
+function scanQrFile(file){
+  if(!file)return;
+  qrMsg("写真からQRを読み取り中…（数秒かかることがあります）");
+  loadQrLib().then(()=>{
+    stopCamera();
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      setTimeout(()=>{
+        let text=null;
+        try{text=decodeBitmap_(img,img.naturalWidth,img.naturalHeight);}catch(e){}
+        if(text)onQrText(text);
+        else qrMsg("写真からQRを読み取れませんでした。無理に近づけず、指示書全体が写るくらいの距離で、明るい場所でピントを合わせて撮り直してください。");
+      },80);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);qrMsg("写真を読み込めませんでした。もう一度お試しください。");};
+    img.src=url;
+  }).catch(e=>qrMsg("✖ "+e.message));
+}
+$("qrClose").onclick=closeQrModal;
+$("qrFile").addEventListener("change",function(){ scanQrFile(this.files&&this.files[0]); this.value=""; });
+
+/* =======================================================================
+   控えの閲覧・再印刷・訂正して出し直す（本人の発行ログを参照）
+   ======================================================================= */
+let KAE_ROWS=[], historyLoaded=false, historyDirty=false;
+function openKae(){
+  showScreen("scrKae");
+  if(historyLoaded && !historyDirty){ renderKaeList(KAE_ROWS); return; }
+  $("kaeLead").textContent="よみこんでいます…"; $("kaeBody").innerHTML="";
+  google.script.run
+    .withSuccessHandler(rows=>{ historyLoaded=true; historyDirty=false; renderKaeList(rows); })
+    .withFailureHandler(err=>{ $("kaeLead").textContent=""; $("kaeBody").innerHTML=`<div class="notfound">✖ 読み込みに失敗しました。<br>${escapeHtml(errText(err))}</div>`; })
+    .getMyKaeRecent(BOOT.token,20);
+}
+function renderKaeList(rows){
+  KAE_ROWS=rows||[];
+  const box=$("kaeBody");
+  if(!KAE_ROWS.length){
+    $("kaeLead").textContent="";
+    box.innerHTML=`<div class="empty"><div class="big">📄</div>まだ控えがありません。<br>送信するとここに残ります。</div>`;
+    return;
+  }
+  $("kaeLead").textContent="見たい控えをタップしてください。";
+  box.innerHTML="";
+  KAE_ROWS.forEach((k,i)=>{
+    const superseded=k.teiseiAto&&String(k.teiseiAto).trim();
+    const isRedo=k.teiseiMoto&&String(k.teiseiMoto).trim();
+    const badge=superseded?`<span class="kbadge v">訂正済み</span>`:(isRedo?`<span class="kbadge r">訂正版</span>`:"");
+    const el=document.createElement("div");
+    el.className="kae-row"+(superseded?" void":"");
+    el.innerHTML=`<div class="no">控え ${escapeHtml(k.kaeNo)}${badge}</div>
+      <div class="meta">${escapeHtml(k.sentAt)}<br>受注 ${escapeHtml(k.juchu)}　${escapeHtml(k.anken||k.tokui||"")}</div>
+      <div class="amt">${yen(k.maisu)}枚 / ¥${yen(k.kingaku)}</div>`;
+    el.onclick=()=>showKaeDetail(i);
+    box.appendChild(el);
+  });
+}
+function showKaeDetail(idx){
+  const k=KAE_ROWS[idx];
+  let d=null;
+  try{ d = k.detailJson ? JSON.parse(k.detailJson) : null; }catch(e){ d=null; }
+  const box=$("kaeBody");
+  $("kaeLead").textContent="";
+  if(!d){
+    box.innerHTML=`<div class="notfound">この控えは明細がのこっていないため、くわしい内容を出せません。<br>事務所にお問い合わせください。</div>
+      <button class="kaebtn" id="btnKaeList" type="button">一覧にもどる</button>`;
+    $("btnKaeList").onclick=()=>renderKaeList(KAE_ROWS);
+    return;
+  }
+  const superseded=k.teiseiAto&&String(k.teiseiAto).trim();
+  const isRedo=k.teiseiMoto&&String(k.teiseiMoto).trim();
+  const voidban=superseded
+    ? `<div class="voidban">⚠ この控えは無効です<br>控え番号 ${escapeHtml(k.teiseiAto)} で訂正・再発行されました</div>`
+    : (isRedo?`<div class="voidban" style="border-color:#1E5BB3;color:#1B3D80;background:#EEF4FF">この控えは控え番号 ${escapeHtml(k.teiseiMoto)} を訂正して出し直したものです</div>`:"");
+  const lines=(d.lines||[]).map(l=>{
+    const sc=[l.size,l.color].filter(Boolean).join("・");
+    return `<div class="kae-line">
+      <div class="h">${escapeHtml(l.bunrui||"（名前なし）")}${sc?`　<span style="font-size:14px;color:var(--sub)">${escapeHtml(sc)}</span>`:""}</div>
+      <div class="w">${escapeHtml(l.used||"")}</div>
+      <div class="n">${yen(l.maisu)}枚 × ¥${yen(l.tanka)}　=　¥${yen(l.shoukei)}</div>
+    </div>`;
+  }).join("");
+  const canRedo = !superseded && (d.lines||[]).some(l=>l.raw);
+  box.innerHTML=`<div class="kae-detail">
+    <h3>作業納品書（控え）</h3>
+    <div class="kno">控え番号 ${escapeHtml(k.kaeNo)}</div>
+    ${voidban}
+    <dl>
+      <dt>お名前</dt><dd>${escapeHtml(d.seik||state.name)}</dd>
+      <dt>作業日</dt><dd>${escapeHtml(d.date||"")}</dd>
+      <dt>受注番号</dt><dd>${escapeHtml(d.juchu||"")}</dd>
+      <dt>得意先／案件名</dt><dd>${escapeHtml(d.tokui||"")}<br>${escapeHtml(d.anken||"")}</dd>
+      <dt>送信日時</dt><dd>${escapeHtml(k.sentAt||"")}</dd>
+    </dl>
+    ${lines}
+    <div class="kae-tot"><span>合計 ${yen(d.maisu)}枚</span><span>¥${yen(d.kingaku)}</span></div>
+    <div class="kae-acts">
+      ${superseded?"":`<button class="print" type="button" id="btnKaePrint">印刷する</button>`}
+      ${canRedo?`<button class="redo" type="button" id="btnKaeRedo">訂正して出し直す</button>`:""}
+    </div>
+  </div>
+  <button class="kaebtn" id="btnKaeList" type="button">一覧にもどる</button>`;
+  $("btnKaeList").onclick=()=>renderKaeList(KAE_ROWS);
+  if(!superseded){ const bp=$("btnKaePrint"); if(bp)bp.onclick=()=>printKae(k,d); }
+  if(canRedo){ const br=$("btnKaeRedo"); if(br)br.onclick=()=>startCorrection(k,d); }
+}
+
+/* 控えHTML（index.html kaeHTML と同一）＝紙に印刷する用 */
+function kaePrintHTML(d,issue,teisei){
+  const rows=(d.lines||[]).map(l=>{
+    const tanka=Number(l.tanka)||0,maisu=Number(l.maisu)||0,shoukei=Number(l.shoukei)||0;
+    return `<tr><td class="c">${escapeHtml(l.bunrui)}</td><td class="c">${escapeHtml(l.size)}</td><td class="c">${escapeHtml(l.color)}</td>`+
+      `<td>${escapeHtml(l.used)}</td><td class="r">${tanka.toLocaleString()}</td><td class="r">${maisu.toLocaleString()}</td><td class="r">${shoukei.toLocaleString()}</td></tr>`;
+  }).join("");
+  const t=teisei||{};
+  const voidNo=t.ato&&String(t.ato).trim();
+  const redoNo=t.moto&&String(t.moto).trim();
+  const voidBanner=voidNo?`<div class="kae-void">⚠ この控えは無効です — 控え番号 ${escapeHtml(voidNo)} で訂正・再発行されました</div>`:"";
+  const redoBadge=redoNo?`<div class="kae-redo">訂正版（元の控え番号 ${escapeHtml(redoNo)}）</div>`:"";
+  return `<div class="kae-print${voidNo?" kae-isvoid":""}">
+    <h2>作業納品書（控え）</h2>
+    ${voidBanner}
+    <div class="kae-meta">
+      <div>請求者：<b>${escapeHtml(d.seik)}</b>（内職さんコード：${escapeHtml(d.code)}）<br>
+        得意先：${escapeHtml(d.tokui)}　案件名：${escapeHtml(d.anken)}${d.juchu?`　受注番号：${escapeHtml(d.juchu)}`:""}<br>
+        作業日：${escapeHtml(d.date)}</div>
+      <div style="text-align:right"><span class="kae-no">控え番号：${escapeHtml(issue.kaeNo)}</span>${redoBadge}<br>
+        送信日時：${escapeHtml(issue.sentAt)}<br>kintoneレコード番号：${escapeHtml(issue.recordId)}（${escapeHtml(issue.modeLabel)}）</div>
+    </div>
+    <table>
+      <tr><th>商品分類</th><th>サイズ</th><th>カラー</th><th>使った作業と単価</th><th>合計単価</th><th>枚数</th><th>小計</th></tr>
+      ${rows}
+    </table>
+    <div class="kae-total"><span>合計枚数 ${(Number(d.maisu)||0).toLocaleString()} 枚</span><span>合計金額 ${(Number(d.kingaku)||0).toLocaleString()} 円</span></div>
+    <div class="kae-note">この控えは登録済みの内容です。修正が必要な場合は会社までご連絡ください。</div>
+  </div>`;
+}
+function printKae(k,d){
+  const detail = d || (k.detailJson?JSON.parse(k.detailJson):null);
+  if(!detail){ alert("この控えは明細がのこっていないため印刷できません。"); return; }
+  detail.seik=detail.seik||state.name; detail.code=detail.code||state.code;
+  $("printArea").innerHTML=kaePrintHTML(detail,
+    {kaeNo:k.kaeNo,sentAt:k.sentAt,recordId:k.recordId,modeLabel:k.mode==="追記"?"既存レコードへ追記":"新規作成"},
+    {moto:k.teiseiMoto||"",ato:k.teiseiAto||""});
+  window.print();
+}
+
+/* 訂正して出し直す: 控えの明細(raw)から品物を復元して入力画面へ */
+function rawToItem(raw){
+  const ops=[];
+  const prices=raw.prices||{};
+  Object.keys(prices).forEach(code=>{
+    const meta=OP_META[code]; if(!meta)return;
+    const price=Number(prices[code])||0; if(price<=0)return;
+    ops.push({code,label:meta.label,type:meta.type,price});
+  });
+  const sonotaP=Number(raw.sonota)||0;
+  const tanka=ops.reduce((s,o)=>s+o.price,0)+sonotaP;
+  return { bunrui:raw.bunrui||"", size:raw.size||"", color:raw.color||"",
+    ops, tanka, maisu:Number(raw.maisu)||0, sonotaN:raw.sonotaN||"", sonotaP };
+}
+function startCorrection(k,d){
+  const lines=d.lines||[];
+  if(!lines.some(l=>l.raw)){ alert("この控えは自動で復元できません。事務所にお問い合わせください。"); return; }
+  if(state.items.length && !confirm("入力中の品物は消えます。この控えの訂正を始めますか？"))return;
+  state.juchu=d.juchu||"";
+  state.order={found:true, juchuno:d.juchu, tokui:d.tokui||"", anken:d.anken||"", tanto:""};
+  state.origKae=k.kaeNo;
+  state.items=lines.filter(l=>l.raw).map(l=>rawToItem(l.raw));
+  $("barJuchu").textContent=state.juchu;
+  $("barAnken").textContent=d.anken||d.tokui||"";
+  showScreen("scrMain"); renderItems();
+  toast(`控え ${k.kaeNo} を出し直します。内容を直して送信してください。`);
+  setTimeout(hideToast,3200);
+}
+$("btnOpenKae").onclick=openKae;
+$("btnOpenKae2").onclick=openKae;
+$("btnKaeBack").onclick=()=>{ if(state.juchu && state.items.length) showScreen("scrMain"); else goJuchu(); };
+
+let toastTimer=null;
+function toast(msg){ $("toast").textContent=msg; $("toast").classList.add("on"); }
+function hideToast(){ $("toast").classList.remove("on"); }
+
+/* ===== 初期化 ===== */
+$("whoName").textContent=BOOT.name+" さん";
+$("today").textContent=todayStr();
+goJuchu();
+
+}
+startWithToken(__startApp__);
+</script>
+</body>
+</html>

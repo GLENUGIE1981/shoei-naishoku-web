@@ -1,0 +1,20 @@
+# 秘匿情報（絶対にコミットしないこと）
+# .mcp.json には kintone の APIトークンが入っている。
+# 一度でもコミットするとgit履歴に残り、ファイルを消しても公開されたままになる。
+.mcp.json
+.clasp.json
+.claspignore
+
+# GAS側のソース。このリポジトリは公開されており、置いたファイルは
+# そのまま https://<user>.github.io/<repo>/<path> で誰でもダウンロードできる。
+# サーバー側のコードはここに入れない。
+*.gs
+Code.js
+admin.js
+appsscript.json
+
+# OS・エディタ
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
