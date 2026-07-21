@@ -100,6 +100,35 @@
     return el;
   }
 
+  /**
+   * 起動中の画面。
+   * 「確認しています」だと利用者が“自分が何か確認を求められている”と受け取って不安になるため、
+   * システム側が正常に準備中であることだけを穏やかに伝える文言にしている。
+   * ロゴは外部画像を持たずに済むよう、絹糸をイメージした線のインラインSVG。
+   */
+  function showBooting() {
+    overlay(
+      '<style>@keyframes __gsp__{to{transform:rotate(360deg)}}' +
+      "@keyframes __gfd__{from{opacity:0}to{opacity:1}}</style>" +
+      '<div style="animation:__gfd__ .6s ease both">' +
+      '<svg width="112" height="112" viewBox="0 0 112 112" aria-hidden="true">' +
+      '<circle cx="56" cy="56" r="46" fill="none" stroke="#e6ecf2" stroke-width="6"/>' +
+      '<circle cx="56" cy="56" r="46" fill="none" stroke="#2b7de9" stroke-width="6" ' +
+      'stroke-linecap="round" stroke-dasharray="60 229" ' +
+      'style="transform-origin:56px 56px;animation:__gsp__ 1.4s linear infinite"/>' +
+      '<path d="M56 33c-11 8-16 15-16 22a16 16 0 0 0 32 0c0-7-5-14-16-22z" ' +
+      'fill="none" stroke="#1a2733" stroke-width="3" stroke-linejoin="round"/>' +
+      '<path d="M48 57c5 4 11 4 16 0" fill="none" stroke="#9aa4ad" stroke-width="2.5" ' +
+      'stroke-linecap="round"/>' +
+      "</svg>" +
+      '<div style="margin-top:16px;font-size:17px;font-weight:700;letter-spacing:2px;color:#1a2733">' +
+      "株式会社 松栄シルク</div>" +
+      '<div style="margin-top:14px;font-size:20px;font-weight:700;color:#1a2733">起動中です</div>' +
+      '<div style="margin-top:8px;font-size:14px;line-height:1.8;color:#5a6b7b">' +
+      "画面の準備をしています。<br>そのままお待ちください。</div></div>"
+    );
+  }
+
   function showInvalid() {
     overlay(
       '<div style="max-width:480px">' +
@@ -116,7 +145,7 @@
    */
   window.startWithToken = function (startApp) {
     var token = new URLSearchParams(location.search).get("t") || "";
-    overlay('<div style="font-size:18px">確認中です…</div>');
+    showBooting();
 
     /* 32桁未満は通信するまでもなく拒否（サーバー側 resolveToken_ と同じ判定）。
        上限に達したkintoneや通信断で無駄なリクエストを出さないため。 */

@@ -45,6 +45,8 @@
   .seikbox{margin-left:auto;display:flex;align-items:center;gap:6px;border:2px solid var(--line);border-radius:4px;padding:3px 8px;background:#f4f7f4}
   .hd-line input{border:0;border-bottom:1.5px solid var(--thin);border-radius:0;padding:4px 6px;font-size:15px;color:var(--hand);background:transparent;font-weight:600}
   .hd-line input:focus{outline:none;border-bottom:2px solid var(--accent)}
+  /* 「受注番号から自動で入ります」の案内。入力の邪魔にならないよう薄いグレー・小さめ・細字 */
+  .hd-line input::placeholder{color:#a8b4c0;font-weight:400;font-size:12px;letter-spacing:.2px;opacity:1}
   .hd-line input.h-seik{border-bottom:0;color:var(--ink);font-weight:700}
   .req{background:var(--warn);color:#fff;font-size:10px;border-radius:3px;padding:1px 4px;margin-left:4px;font-weight:700;vertical-align:1px}
   .del-sheet{margin-left:8px;background:none;border:1px solid var(--warn);color:var(--warn);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px}
@@ -349,15 +351,15 @@ function sheetHTML(){
       </div>
       <div class="hd-line">
         <span class="lbl">株式会社 松栄シルク</span>
-        <input class="h-nofuku" placeholder="納品先" style="width:150px;text-align:center">
+        <input class="h-nofuku" placeholder="納品先（自動）" style="width:150px;text-align:center">
         <span class="lbl">様</span>
         <span style="width:14px"></span>
         <span class="seikbox"><span class="lbl">請求者</span>
           <input class="h-seik" value="${escHtml(BOOT.name)}" readonly tabindex="-1" style="width:152px"></span>
       </div>
       <div class="hd-line">
-        <span class="lbl">得意先</span><input class="h-tokui" placeholder="" style="width:340px;text-align:center">
-        <span class="lbl">案件名</span><input class="h-anken" placeholder="" style="width:520px;text-align:center">
+        <span class="lbl">得意先</span><input class="h-tokui" placeholder="受注番号から自動で入ります" style="width:340px;text-align:center">
+        <span class="lbl">案件名</span><input class="h-anken" placeholder="受注番号から自動で入ります" style="width:520px;text-align:center">
       </div>
     </div>
     <div class="blocks">${blockHTML().repeat(4)}</div>
@@ -1005,7 +1007,7 @@ function markCorrectionSheet(s,origKaeNo){
     const fresh=addSheet(null); // 常に空のシートを1枚残す
     s.remove();recalcAll();
     setStatus("","");
-    const t=fresh.querySelector(".h-tokui");if(t&&t.focus)t.focus();
+    const t=fresh.querySelector(".h-juchu");if(t&&t.focus)t.focus();
   };
 }
 function startCorrection(row){
@@ -1123,7 +1125,7 @@ document.getElementById("btnAddSheet").onclick=()=>{
   const carry=last?{tokui:last.querySelector(".h-tokui").value,nofuku:last.querySelector(".h-nofuku").value,
     juchu:last.querySelector(".h-juchu").value,anken:last.querySelector(".h-anken").value}:null;
   const s=addSheet(carry);
-  s.querySelector(".h-tokui").focus();
+  s.querySelector(".h-juchu").focus();
   if(s.scrollIntoView) s.scrollIntoView({behavior:"smooth",block:"start"});
 };
 document.getElementById("btnSend").onclick=submitAll;
@@ -1141,7 +1143,8 @@ window.addEventListener("beforeunload",e=>{
 });
 
 const first=addSheet(null);
-first.querySelector(".h-tokui").focus();
+/* 入力は受注番号から始める運用。得意先・案件名は受注番号から自動で入るためカーソルを置かない */
+first.querySelector(".h-juchu").focus();
 
 }
 startWithToken(__startApp__);
