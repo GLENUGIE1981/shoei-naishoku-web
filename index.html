@@ -195,6 +195,7 @@
 
     <div class="foot">
       使い方：紙の作業納品書と同じように、使った作業の単価だけマスに書き込みます。合計単価・小計は自動で計算されます。<br>
+      マスの移動は、Enterで次のマス、Tabで右、矢印キー（↑↓←→）で見た目どおり上下左右に動きます。<br>
       <b>〔📷 加工指示書のQRで自動入力〕</b>を押して加工指示書のQRコードを読み取ると、受注番号・得意先・案件名・納品先が自動で入ります（カメラが使えないときは「写真から読み取る」か、受注番号の手入力でも同じように自動で入ります）。<b>受注番号は必須</b>です。<br>
       請求者はご本人（このページの名義）に固定されています。変更はできません。<br>
       〔送信する〕を押すと会社に登録され、<b>控え（控え番号付き）が自動で印刷画面に出ます</b>。送信済みのシートは変更できません。<br>
@@ -681,6 +682,67 @@ function blockOrder(tbl){
   return ENTER_SEQ.map(s=>tbl.querySelector(s[0]==="k"?`[data-k='${s[1]}']`:`[data-price='${s[1]}']`)).filter(Boolean);
 }
 
+/* ===== 矢印キーの移動（見た目どおりの上下左右。スタッフ用と同一） =====
+   Enterの移動順(ENTER_SEQ)とは別に、画面上の位置で隣のマスへ移動する。
+   位置は実際の描画位置(getBoundingClientRect)で判定するので、ブロックをまたぐ移動
+   （一辺 ↓ 次のブロックのOPP入）もそのまま扱える。
+     ← → 同じ行(tr)のマスのうち、その向きで最も近いもの
+     ↑ ↓ 横に重なっているマス（＝同じ列）のうち、その向きで最も近いもの
+   左右で行(tr)を優先するのは、商品分類・枚数が行結合(rowspan)で上下に伸びており、
+   描画位置だけで選ぶと下の行（カラーなど）へ飛んでしまうため。
+   同じ行に候補が無い場合（アイロンの右など）は描画位置で探し直す。
+   間に入る空欄セル（合計単価の左の隙間など）は飛ばす。
+   その向きに入力欄が無ければ（表の端など）何もしない。 */
+const ARROW_KEYS={ArrowUp:1,ArrowDown:1,ArrowLeft:1,ArrowRight:1};
+function arrowTarget(cur,key,cells){
+  if(key==="ArrowLeft"||key==="ArrowRight"){
+    const row=cur.closest("tr");
+    const sameRow=cells.filter(el=>el.closest("tr")===row);
+    return nearestCell(cur,key,sameRow,true)||nearestCell(cur,key,cells,false);
+  }
+  return nearestCell(cur,key,cells,false);
+}
+// sameRow=true のときは同じ行だけを渡しているので、行の重なり判定は行わない
+function nearestCell(cur,key,cells,sameRow){
+  const r=cur.getBoundingClientRect();
+  const horiz=(key==="ArrowLeft"||key==="ArrowRight");
+  const fwd=(key==="ArrowRight"||key==="ArrowDown");
+  let best=null,bestMain=0,bestCross=0;
+  cells.forEach(el=>{
+    if(el===cur||el.disabled||el.readOnly)return;
+    const b=el.getBoundingClientRect();
+    if(!b.width&&!b.height)return; // 非表示のマスは対象外
+    // 進行方向と直交する向きで重なっていないマス（＝行/列が違う）は対象外
+    if(!sameRow){
+      const overlap=horiz?(b.bottom>r.top+2&&b.top<r.bottom-2)
+                         :(b.right>r.left+2&&b.left<r.right-2);
+      if(!overlap)return;
+    }
+    // main=進行方向の距離（マイナスは進行方向の逆にあるマス）／cross=行・列のずれ
+    const main=Math.round(horiz?(fwd?b.left-r.right:r.left-b.right)
+                               :(fwd?b.top-r.bottom:r.top-b.bottom));
+    if(main<-2)return;
+    const cross=Math.abs(horiz?b.top-r.top:b.left-r.left);
+    if(!best||main<bestMain||(main===bestMain&&cross<bestCross)){best=el;bestMain=main;bestCross=cross;}
+  });
+  return best;
+}
+/* 文字を入れるマス（商品分類・サイズ・カラー・その他内容）では、カーソルが先頭/末尾に
+   来るまで文字カーソルの移動を優先する。単価・枚数の数字マスは常にマス移動。 */
+function canLeaveCell(inp,key){
+  if(key==="ArrowUp"||key==="ArrowDown")return true;
+  if(inp.getAttribute("inputmode")==="numeric")return true;
+  const s=inp.selectionStart,e=inp.selectionEnd;
+  if(s===null||s===undefined)return true;
+  if(s!==e)return false; // 範囲選択中は文字の操作を優先
+  return key==="ArrowLeft"?s===0:s===inp.value.length;
+}
+// 移動先ではカーソルを末尾に置く（続けて同じ向きに押したときの動きを一定にする）
+function focusCell(el){
+  el.focus();
+  try{const n=el.value.length;el.setSelectionRange(n,n);}catch(err){/* 数値欄等で失敗しても無視 */}
+}
+
 /* ===== シート操作（スタッフ用と同一。請求者関連の処理のみ削除） ===== */
 /* 受注番号があるシートは得意先・案件名（と納品先）がルックアップ／受注情報で確定するため編集をロック */
 function syncLookupLock(sheet){
@@ -710,17 +772,24 @@ function wireSheet(sheet){
   sheet.querySelector(".qr-btn").onclick=()=>openQrModal(sheet);
   // 受注番号の手入力（QRが読めないとき用）: 確定時に受注情報を取得して自動コピー
   sheet.querySelector(".h-juchu").addEventListener("change",()=>fetchOrderByJuchu(sheet));
-  // Enter＝定義した順で次のマスへフォーカス移動するだけ（値のコピーはしない）
+  // Enter＝定義した順で次のマスへ／矢印＝見た目どおり隣のマスへ（どちらも値のコピーはしない）
   const order=[];
   sheet.querySelectorAll("table.block").forEach(b=>order.push(...blockOrder(b)));
+  const cells=Array.from(sheet.querySelectorAll("table.block input"));
   order.forEach((inp,i)=>{
     inp.addEventListener("keydown",e=>{
+      if(e.isComposing||e.keyCode===229) return; // IME変換確定中は移動しない
       if(e.key==="Enter"){
-        if(e.isComposing||e.keyCode===229) return; // IME変換確定中は移動しない
         e.preventDefault();
         const next=order[i+1];
         if(next) next.focus();
+        return;
       }
+      if(!ARROW_KEYS[e.key])return;
+      if(e.altKey||e.ctrlKey||e.metaKey||e.shiftKey)return; // ショートカット・範囲選択を邪魔しない
+      if(!canLeaveCell(inp,e.key))return;
+      const t=arrowTarget(inp,e.key,cells);
+      if(t){e.preventDefault();focusCell(t);}
     });
   });
 }
