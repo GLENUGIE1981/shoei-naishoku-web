@@ -624,7 +624,7 @@ function handleSendResults(entries,results){
       lockSheet(e.sheet,r);
       historyDirty=true; // 履歴タブを次に開いたとき再読み込みする
       okMsgs.push(`シート#${sno}: 送信できました（控え番号 ${r.kaeNo||"発行エラー"}）`);
-      if(r.kaeError)errMsgs.push(`シート#${sno}: 登録は成功しましたが控え番号を発行できませんでした（${r.kaeError}）`);
+      if(r.kaeError)errMsgs.push(`シート#${sno}: 登録は成功しましたが控えの処理で問題がありました（${r.kaeError}）`);
     }else{
       errMsgs.push(`シート#${sno}: ${r.error}`);
     }

@@ -817,7 +817,7 @@ function onSent(results){
   if(!r.ok){ alert("送信できませんでした。もう一度お試しください。\n"+(r.error||"")); $("btnSend").disabled=false; return; }
   let m=0,k2=0; state.items.forEach(it=>{m+=it.maisu;k2+=it.tanka*it.maisu;});
   const o=state.order||{};
-  const note=r.kaeError?`<br><span style="color:var(--danger)">※控え番号の発行で問題がありました（${escapeHtml(r.kaeError)}）</span>`:"";
+  const note=r.kaeError?`<br><span style="color:var(--danger)">※控えの処理で問題がありました（${escapeHtml(r.kaeError)}）</span>`:"";
   $("doneBox").innerHTML=`控え番号　<b>${escapeHtml(r.kaeNo||"（発行なし）")}</b><br>
     <span style="color:var(--sub)">受注 ${escapeHtml(state.juchu)}　${escapeHtml(o.anken||"")}<br>
     ${escapeHtml(state.name)}　${todayStr()}<br>合計 ${m}枚 / ¥${yen(k2)}</span>${note}`;
