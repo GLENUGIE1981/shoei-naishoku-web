@@ -179,7 +179,7 @@
   <div id="tabInput">
     <div class="toolbar">
       <button class="act send" id="btnSend" type="button">送信する</button>
-      <span class="grand">全シート合計 <b id="grandMaisu">0</b> 枚 / <b id="grandKingaku">0</b> 円</span>
+      <span class="grand">全シート合計 数量<b id="grandMaisu">0</b> / <b id="grandKingaku">0</b> 円</span>
       <div class="legend" style="margin-left:auto">
         <span><i class="sw" style="background:var(--tat)"></i>たたみ系</span>
         <span><i class="sw" style="background:var(--mis)"></i>ミシン系</span>
@@ -300,7 +300,7 @@ function blockHTML(){
       <th class="binfo">商品分類</th><th class="binfo">サイズ</th>
       <th class="tat">OPP入</th><th class="tat">シール貼</th><th class="tat">下札付</th><th class="tat">投込</th><th class="tat">十字梱包</th>
       <th class="binfo">その他<br>内容</th><th class="binfo">その他<br>単価</th><th class="sp"></th>
-      <th class="sumh">合計単価</th><th class="binfo">枚数</th><th class="sumh">小計</th>
+      <th class="sumh">合計単価</th><th class="binfo">数量</th><th class="sumh">小計</th>
     </tr>
     <tr>
       <td class="txt prod" rowspan="3"><input data-k="bunrui" class="big"></td>
@@ -365,7 +365,7 @@ function sheetHTML(){
     </div>
     <div class="blocks">${blockHTML().repeat(4)}</div>
     <div class="sheet-ft">
-      <span>この伝票　合計枚数 <b class="s-maisu">0</b> 枚</span>
+      <span>この伝票　合計数量 <b class="s-maisu">0</b></span>
       <span>金額 <b class="s-kingaku">0</b> 円</span>
     </div>
   </div>`;
@@ -555,10 +555,10 @@ function kaeHTML(d,issue,reissue,teisei){
       </div>
     </div>
     <table>
-      <tr><th>商品分類</th><th>サイズ</th><th>カラー</th><th>使った作業と単価</th><th>合計単価</th><th>枚数</th><th>小計</th></tr>
+      <tr><th>商品分類</th><th>サイズ</th><th>カラー</th><th>使った作業と単価</th><th>合計単価</th><th>数量</th><th>小計</th></tr>
       ${rows}
     </table>
-    <div class="kae-total"><span>合計枚数 ${(Number(d.maisu)||0).toLocaleString()} 枚</span><span>合計金額 ${(Number(d.kingaku)||0).toLocaleString()} 円</span></div>
+    <div class="kae-total"><span>合計数量 ${(Number(d.maisu)||0).toLocaleString()}</span><span>合計金額 ${(Number(d.kingaku)||0).toLocaleString()} 円</span></div>
     <div class="kae-note">この控えは登録済みの内容です。修正が必要な場合は会社までご連絡ください。${juchuNote}${reissueNote}${teiseiNote}</div>
   </div>`;
 }
@@ -688,7 +688,7 @@ function blockOrder(tbl){
    （一辺 ↓ 次のブロックのOPP入）もそのまま扱える。
      ← → 同じ行(tr)のマスのうち、その向きで最も近いもの
      ↑ ↓ 横に重なっているマス（＝同じ列）のうち、その向きで最も近いもの
-   左右で行(tr)を優先するのは、商品分類・枚数が行結合(rowspan)で上下に伸びており、
+   左右で行(tr)を優先するのは、商品分類・数量が行結合(rowspan)で上下に伸びており、
    描画位置だけで選ぶと下の行（カラーなど）へ飛んでしまうため。
    同じ行に候補が無い場合（アイロンの右など）は描画位置で探し直す。
    間に入る空欄セル（合計単価の左の隙間など）は飛ばす。
@@ -728,7 +728,7 @@ function nearestCell(cur,key,cells,sameRow){
   return best;
 }
 /* 文字を入れるマス（商品分類・サイズ・カラー・その他内容）では、カーソルが先頭/末尾に
-   来るまで文字カーソルの移動を優先する。単価・枚数の数字マスは常にマス移動。 */
+   来るまで文字カーソルの移動を優先する。単価・数量の数字マスは常にマス移動。 */
 function canLeaveCell(inp,key){
   if(key==="ArrowUp"||key==="ArrowDown")return true;
   if(inp.getAttribute("inputmode")==="numeric")return true;
@@ -1018,7 +1018,7 @@ function renderList(rows,emptyMsg){
     return;
   }
   box.innerHTML=`<table class="rjtable">
-    <tr><th>控え番号</th><th>送信日時</th><th>得意先／案件名</th><th>受注番号</th><th>枚数</th><th>金額</th><th></th></tr>
+    <tr><th>控え番号</th><th>送信日時</th><th>得意先／案件名</th><th>受注番号</th><th>数量</th><th>金額</th><th></th></tr>
     ${ROWS.map((k,i)=>{
       const superseded=k.teiseiAto&&String(k.teiseiAto).trim();
       const isRedo=k.teiseiMoto&&String(k.teiseiMoto).trim();
@@ -1114,7 +1114,7 @@ function startCorrection(row){
 /* 再印刷（明細JSONから描画。採番・ログ追記・kintone更新なし） */
 function printReissue(row){
   if(!row.detailJson){
-    setStatus("err",`✖ 控え番号「${row.kaeNo}」は明細データが保存されていないため、この画面からは再印刷できません。\nお手数ですが会社までご連絡ください（発行 ${row.sentAt}／合計 ${row.maisu}枚 ${row.kingaku}円）。`);
+    setStatus("err",`✖ 控え番号「${row.kaeNo}」は明細データが保存されていないため、この画面からは再印刷できません。\nお手数ですが会社までご連絡ください（発行 ${row.sentAt}／合計数量 ${row.maisu} / ${row.kingaku}円）。`);
     return;
   }
   let detail;

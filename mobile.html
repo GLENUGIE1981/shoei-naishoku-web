@@ -9,7 +9,7 @@
      高齢者向け・スマホ版（worker-app 本人用）v3
      内職さん本人が自分のスマホで入力する自己入力フロー。
        ①受注番号を入力（テンキー or 加工指示書QR）→ ②得意先名・案件名を大きく
-       表示して指示書と照合 → ③品物ごとに作業・単価・枚数 → ④送信 → 控え
+       表示して指示書と照合 → ③品物ごとに作業・単価・数量 → ④送信 → 控え
      受注番号1つ = kintoneレコード1つ（既存があれば明細に追記）。
      色分けは紙の伝票と同じ たたみ系=アンバー / ミシン系=藍。
      本人＝アクセスURL(トークン)で確定。名義はサーバーが本人に固定する。
@@ -309,7 +309,7 @@
       <div class="corr-guide">品物の内容を直すときは、その品物の〔なおす〕を押してください。いらない品物は〔けす〕で消せます。直し終えたら下の〔この内容で送信する〕を押すと、新しい控えが出て、元の控えは無効になります。</div>
     </div>
     <h2 class="title">やった作業を入れる</h2>
-    <p class="lead">品物ごとに「作業」と「枚数」を入れてください。</p>
+    <p class="lead">品物ごとに「作業」と「数量」を入れてください。</p>
     <div id="itemList"></div>
     <button class="addbtn" id="btnAdd" type="button">＋ 品物をついか</button>
   </section>
@@ -336,7 +336,7 @@
   <div class="bottom" id="bottomBar" hidden>
     <div class="row">
       <span class="lbl">この受注ぶん</span>
-      <span class="maisu"><span id="totMaisu">0</span> 枚</span>
+      <span class="maisu">数量<span id="totMaisu">0</span></span>
       <span class="yen"><small>¥</small><span id="totYen">0</span></span>
     </div>
     <button class="send" id="btnSend" type="button" disabled>この内容で送信する</button>
@@ -381,10 +381,10 @@
         </div>
       </div>
       <div class="fld">
-        <label>枚数</label>
+        <label>数量</label>
         <div class="maisu-box" id="maisuBox">
-          <span class="u">枚数</span>
-          <span class="v"><span id="maisuVal">0</span> <span class="u">枚</span></span>
+          <span class="u">数量</span>
+          <span class="v"><span id="maisuVal">0</span></span>
         </div>
         <div class="sub-sum">この品物の小計　<b>¥<span id="itemSum">0</span></b></div>
       </div>
@@ -574,7 +574,7 @@ function renderItems(){
       el.innerHTML=`<div class="item-hd"><span class="name">${escapeHtml(it.bunrui||"（名前なし）")}</span>`+
         `<button class="edit" type="button">なおす</button><button class="del" type="button">けす</button></div>
         <div class="chips">${chips}</div>
-        <div class="item-ft">${it.maisu}枚 × ¥${yen(it.tanka)}　=　<b>¥${yen(it.tanka*it.maisu)}</b></div>`;
+        <div class="item-ft">${it.maisu} × ¥${yen(it.tanka)}　=　<b>¥${yen(it.tanka*it.maisu)}</b></div>`;
       el.querySelector(".edit").onclick=()=>openSheet(idx);
       el.querySelector(".del").onclick=()=>{ if(confirm("この品物を消しますか？")){ state.items.splice(idx,1); renderItems(); } };
       box.appendChild(el);
@@ -677,7 +677,7 @@ $("sonotaPriceBox").onclick=()=>openPad("その他の単価","yen",draft.sonotaP
   $("sonotaPriceBox").classList.toggle("on",val>0);
   syncDraft();
 });
-$("maisuBox").onclick=()=>openPad("枚数","mai",draft.maisu,val=>{ draft.maisu=val; $("maisuVal").textContent=val; syncDraft(); });
+$("maisuBox").onclick=()=>openPad("数量","mai",draft.maisu,val=>{ draft.maisu=val; $("maisuVal").textContent=val; syncDraft(); });
 function draftTanka(){ return Object.values(draft.ops).reduce((s,o)=>s+o.price,0) + (draft.sonotaP||0); }
 function syncDraft(){
   $("itemSum").textContent=yen(draftTanka()*draft.maisu);
@@ -820,7 +820,7 @@ function onSent(results){
   const note=r.kaeError?`<br><span style="color:var(--danger)">※控えの処理で問題がありました（${escapeHtml(r.kaeError)}）</span>`:"";
   $("doneBox").innerHTML=`控え番号　<b>${escapeHtml(r.kaeNo||"（発行なし）")}</b><br>
     <span style="color:var(--sub)">受注 ${escapeHtml(state.juchu)}　${escapeHtml(o.anken||"")}<br>
-    ${escapeHtml(state.name)}　${todayStr()}<br>合計 ${m}枚 / ¥${yen(k2)}</span>${note}`;
+    ${escapeHtml(state.name)}　${todayStr()}<br>合計数量 ${m} / ¥${yen(k2)}</span>${note}`;
   // 送信済みの入力は片付ける（出し直しも完了）。これで「控え→もどる」で送信済みの
   // 品物画面に戻って二重送信…という事故も防ぐ。次は完了画面のボタンから進む。
   state.items=[]; state.juchu=null; state.order=null; state.origKae="";
@@ -988,7 +988,7 @@ function renderKaeList(rows){
     el.className="kae-row"+(superseded?" void":"");
     el.innerHTML=`<div class="no">控え ${escapeHtml(k.kaeNo)}${badge}</div>
       <div class="meta">${escapeHtml(k.sentAt)}<br>受注 ${escapeHtml(k.juchu)}　${escapeHtml(k.anken||k.tokui||"")}</div>
-      <div class="amt">${yen(k.maisu)}枚 / ¥${yen(k.kingaku)}</div>`;
+      <div class="amt">数量${yen(k.maisu)} / ¥${yen(k.kingaku)}</div>`;
     el.onclick=()=>showKaeDetail(i);
     box.appendChild(el);
   });
@@ -1015,7 +1015,7 @@ function showKaeDetail(idx){
     return `<div class="kae-line">
       <div class="h">${escapeHtml(l.bunrui||"（名前なし）")}${sc?`　<span style="font-size:14px;color:var(--sub)">${escapeHtml(sc)}</span>`:""}</div>
       <div class="w">${escapeHtml(l.used||"")}</div>
-      <div class="n">${yen(l.maisu)}枚 × ¥${yen(l.tanka)}　=　¥${yen(l.shoukei)}</div>
+      <div class="n">${yen(l.maisu)} × ¥${yen(l.tanka)}　=　¥${yen(l.shoukei)}</div>
     </div>`;
   }).join("");
   const canRedo = !superseded && (d.lines||[]).some(l=>l.raw);
@@ -1031,7 +1031,7 @@ function showKaeDetail(idx){
       <dt>送信日時</dt><dd>${escapeHtml(k.sentAt||"")}</dd>
     </dl>
     ${lines}
-    <div class="kae-tot"><span>合計 ${yen(d.maisu)}枚</span><span>¥${yen(d.kingaku)}</span></div>
+    <div class="kae-tot"><span>合計数量 ${yen(d.maisu)}</span><span>¥${yen(d.kingaku)}</span></div>
     <div class="kae-acts">
       ${superseded?"":`<button class="print" type="button" id="btnKaePrint">印刷する</button>`}
       ${canRedo?`<button class="redo" type="button" id="btnKaeRedo">訂正して出し直す</button>`:""}
@@ -1066,10 +1066,10 @@ function kaePrintHTML(d,issue,teisei){
         送信日時：${escapeHtml(issue.sentAt)}<br>kintoneレコード番号：${escapeHtml(issue.recordId)}（${escapeHtml(issue.modeLabel)}）</div>
     </div>
     <table>
-      <tr><th>商品分類</th><th>サイズ</th><th>カラー</th><th>使った作業と単価</th><th>合計単価</th><th>枚数</th><th>小計</th></tr>
+      <tr><th>商品分類</th><th>サイズ</th><th>カラー</th><th>使った作業と単価</th><th>合計単価</th><th>数量</th><th>小計</th></tr>
       ${rows}
     </table>
-    <div class="kae-total"><span>合計枚数 ${(Number(d.maisu)||0).toLocaleString()} 枚</span><span>合計金額 ${(Number(d.kingaku)||0).toLocaleString()} 円</span></div>
+    <div class="kae-total"><span>合計数量 ${(Number(d.maisu)||0).toLocaleString()}</span><span>合計金額 ${(Number(d.kingaku)||0).toLocaleString()} 円</span></div>
     <div class="kae-note">この控えは登録済みの内容です。修正が必要な場合は会社までご連絡ください。</div>
   </div>`;
 }
