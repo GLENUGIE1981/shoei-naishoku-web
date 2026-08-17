@@ -535,7 +535,7 @@ function showOrder(info,noOverride){
       <dl>
         <dt>得意先</dt><dd>${escapeHtml(info.tokui)}</dd>
         <dt>案件名</dt><dd>${escapeHtml(info.anken)}</dd>
-        ${info.tanto?`<dt>納品先</dt><dd>${escapeHtml(info.tanto)}</dd>`:""}
+        ${info.tanto?`<dt>営業担当者</dt><dd>${escapeHtml(info.tanto)}</dd>`:""}
         ${info.shukkaDate?`<dt>出荷日</dt><dd>${escapeHtml(info.shukkaDate)}</dd>`:""}
       </dl>
       <div class="btns">
@@ -792,6 +792,8 @@ function buildItems(){
   const kaeDetail={
     seik:state.name, code:state.code, date:todayISO(),
     tokui:o.tokui||"", anken:o.anken||"", juchu:state.juchu,
+    // 営業担当者は画面表示専用（kintoneへは送らない）。〔訂正して出し直す〕で戻せるよう控えにだけ持たせる
+    nofuku:o.tanto||"",
     maisu, kingaku, lines:state.items.map(lineForKae),
   };
   const meta={ seik:state.name, code:state.code, date:todayISO(), maisu, kingaku,
@@ -1102,7 +1104,8 @@ function startCorrection(k,d){
   if(!lines.some(l=>l.raw)){ alert("この控えは自動で復元できません。事務所にお問い合わせください。"); return; }
   if(state.items.length && !confirm("入力中の品物は消えます。この控えの訂正を始めますか？"))return;
   state.juchu=d.juchu||"";
-  state.order={found:true, juchuno:d.juchu, tokui:d.tokui||"", anken:d.anken||"", tanto:""};
+  // tanto（営業担当者）を持っていない古い控えでは空のまま
+  state.order={found:true, juchuno:d.juchu, tokui:d.tokui||"", anken:d.anken||"", tanto:d.nofuku||""};
   state.origKae=k.kaeNo;
   state.items=lines.filter(l=>l.raw).map(l=>rawToItem(l.raw));
   $("barJuchu").textContent=state.juchu;

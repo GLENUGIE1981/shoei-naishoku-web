@@ -196,7 +196,7 @@
     <div class="foot">
       使い方：紙の作業納品書と同じように、使った作業の単価だけマスに書き込みます。合計単価・小計は自動で計算されます。<br>
       マスの移動は、Enterで次のマス、Tabで右、矢印キー（↑↓←→）で見た目どおり上下左右に動きます。<br>
-      <b>〔📷 加工指示書のQRで自動入力〕</b>を押して加工指示書のQRコードを読み取ると、受注番号・得意先・案件名・納品先が自動で入ります（カメラが使えないときは「写真から読み取る」か、受注番号の手入力でも同じように自動で入ります）。<b>受注番号は必須</b>です。<br>
+      <b>〔📷 加工指示書のQRで自動入力〕</b>を押して加工指示書のQRコードを読み取ると、受注番号・得意先・案件名・営業担当者が自動で入ります（カメラが使えないときは「写真から読み取る」か、受注番号の手入力でも同じように自動で入ります）。<b>受注番号は必須</b>です。<br>
       請求者はご本人（このページの名義）に固定されています。変更はできません。<br>
       〔送信する〕を押すと会社に登録され、<b>控え（控え番号付き）が自動で印刷画面に出ます</b>。送信済みのシートは変更できません。<br>
       印刷し忘れたときは、送信済みシートの〔控えを再印刷〕か、上の「履歴」タブからいつでも再印刷できます。<br>
@@ -517,6 +517,8 @@ function buildKaeDetail(e){
   return {
     seik:BOOT.name,code:BOOT.code,date:s.date,
     tokui:s.tokui,anken:s.anken,juchu:s.juchu,
+    // 営業担当者は画面表示専用（kintoneへは送らない）。〔訂正して出し直す〕で戻せるよう控えにだけ持たせる
+    nofuku:(e.sheet.querySelector(".h-nofuku")||{}).value||"",
     maisu:num(e.sheet.querySelector(".s-maisu").textContent),
     kingaku:num(e.sheet.querySelector(".s-kingaku").textContent),
     lines:lines,
@@ -744,7 +746,7 @@ function focusCell(el){
 }
 
 /* ===== シート操作（スタッフ用と同一。請求者関連の処理のみ削除） ===== */
-/* 受注番号があるシートは得意先・案件名（と納品先）がルックアップ／受注情報で確定するため編集をロック */
+/* 受注番号があるシートは得意先・案件名（と営業担当者）がルックアップ／受注情報で確定するため編集をロック */
 function syncLookupLock(sheet){
   const lock=sheet.querySelector(".h-juchu").value.trim()!=="";
   [".h-tokui",".h-anken",".h-nofuku"].forEach(c=>{
@@ -1098,6 +1100,7 @@ function startCorrection(row){
   s.querySelector(".h-juchu").value=d.juchu||"";
   s.querySelector(".h-tokui").value=d.tokui||"";
   s.querySelector(".h-anken").value=d.anken||"";
+  s.querySelector(".h-nofuku").value=d.nofuku||""; // 営業担当者を持っていない古い控えでは空のまま
   const blocks=s.querySelectorAll("table.block");
   lines.forEach((l,idx)=>{if(l.raw&&blocks[idx])fillBlockFromRaw(blocks[idx],l.raw);});
   markCorrectionSheet(s,row.kaeNo);
